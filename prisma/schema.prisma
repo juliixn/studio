@@ -1,9 +1,3 @@
-pg_dump \
-     -Fc \
-          -v \
-               -d __export DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza19Pc19hSExoZkMxODhXbVpBcWFjS0IiLCJhcGlfa2V5IjoiMDFLMTVYM0VNRTg3RUVDOVhLN1MyN1ozS1AiLCJ0ZW5hbnRfaWQiOiI4Y2UwNzZlYmQzNTU5ZTVmMDViNWFkODZkZDQxYjE0YzZjYzU0ODU1NzZkODk2OWFkNTliZjkxMTU4ODgzN2YwIiwiaW50ZXJuYWxfc2VjcmV0IjoiMTk4OTEyZDMtZGI3Yy00ZDc0LWI3YTEtOGRlMjAxY2MzZDA1In0.U9u5mt_vkQsKzpc0fQtFYtgNCziq_SJTS2_scRi9neI"__ \
-                    -n public \
-                         -f db_dump.bak
 generator client {
   provider = "prisma-client-js"
 }
