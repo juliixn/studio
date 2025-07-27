@@ -12,77 +12,77 @@ datasource db {
 }
 
 model User {
-  id                      String   @id @default(cuid())
-  username                String   @unique
-  name                    String
-  email                   String   @unique
-  password                String?
-  role                    UserRole
-  photoUrl                String?
-  dailySalary             Float?
-  allowRemoteCheckIn      Boolean?
-  loanLimit               Float?
-  interestRate            Float?
-  leaseStartDate          DateTime?
-  leaseEndDate            DateTime?
-  numberOfInhabitants     Int?
-  inhabitantNames         String? // Stored as comma-separated string
+  id                  String    @id @default(cuid())
+  username            String    @unique
+  name                String
+  email               String    @unique
+  password            String?
+  role                UserRole
+  photoUrl            String?
+  dailySalary         Float?
+  allowRemoteCheckIn  Boolean?
+  loanLimit           Float?
+  interestRate        Float?
+  leaseStartDate      DateTime?
+  leaseEndDate        DateTime?
+  numberOfInhabitants Int?
+  inhabitantNames     String? // Stored as comma-separated string
 
   // Relations
-  condominios             Condominio[]          @relation("UserCondos")
-  domicilios              Address[]
-  vehicles                VehicleInfo[]
-  createdPeticiones       Peticion[]            @relation("CreatedPeticiones")
-  peticionComments        PeticionComment[]
-  bitacoraEntries         BitacoraEntry[]
-  shifts                  ShiftRecord[]
-  packagesReceived        Package[]             @relation("ReceivedPackages")
-  packagesDeliveredTo     Package[]             @relation("DeliveredToPackages")
-  reservations            Reservation[]
-  surveysVotedOn          Survey[]
-  workOrdersAssigned      WorkOrder[]
-  alertResponses          AlertResponse[]
-  createdCommunityEvents  CommunityEvent[]
-  createdNotifications    VisitorNotification[]
-  chatMessages            ChatMessage[]
-  loans                   Loan[]
-  conversations           Conversation[]        @relation("UserConversations")
-  directMessagesSent      DirectMessage[]       @relation("SentMessages")
-  directMessagesReceived  DirectMessage[]       @relation("ReceivedMessages")
+  condominios            Condominio[]          @relation("UserCondos")
+  domicilios             Address[]
+  vehicles               VehicleInfo[]
+  createdPeticiones      Peticion[]            @relation("CreatedPeticiones")
+  peticionComments       PeticionComment[]
+  bitacoraEntries        BitacoraEntry[]
+  shifts                 ShiftRecord[]
+  packagesReceived       Package[]             @relation("ReceivedPackages")
+  packagesDeliveredTo    Package[]             @relation("DeliveredToPackages")
+  reservations           Reservation[]
+  surveysVotedOn         Survey[]
+  workOrdersAssigned     WorkOrder[]
+  alertResponses         AlertResponse[]
+  createdCommunityEvents CommunityEvent[]
+  createdNotifications   VisitorNotification[]
+  chatMessages           ChatMessage[]
+  loans                  Loan[]
+  conversations          Conversation[]        @relation("UserConversations")
+  directMessagesSent     DirectMessage[]       @relation("SentMessages")
+  directMessagesReceived DirectMessage[]       @relation("ReceivedMessages")
 }
 
 model Condominio {
-  id                      String   @id @default(cuid())
-  name                    String
-  mainAddress             String
-  latitude                Float?
-  longitude               Float?
-  status                  String
-  geofenceRadius          Int?
-  guardsRequiredDiurno    Int?
-  guardsRequiredNocturno  Int?
-  guardMenuSections       String? // Stored as comma-separated string
+  id                     String  @id @default(cuid())
+  name                   String
+  mainAddress            String
+  latitude               Float?
+  longitude              Float?
+  status                 String
+  geofenceRadius         Int?
+  guardsRequiredDiurno   Int?
+  guardsRequiredNocturno Int?
+  guardMenuSections      String? // Stored as comma-separated string
 
   // Relations
-  users                   User[]                @relation("UserCondos")
-  addresses               Address[]
-  bitacoraEntries         BitacoraEntry[]
-  packages                Package[]
-  peticiones              Peticion[]
-  emergencyContacts       EmergencyContact[]
-  reservations            Reservation[]
-  surveys                 Survey[]
-  workOrders              WorkOrder[]
-  plannedShifts           PlannedShift[]
-  guestPasses             GuestPass[]
-  visitorNotifications    VisitorNotification[]
-  panicAlerts             PanicAlert[]
-  assets                  Asset[]
-  shiftRecords            ShiftRecord[]
+  users                User[]                @relation("UserCondos")
+  addresses            Address[]
+  bitacoraEntries      BitacoraEntry[]
+  packages             Package[]
+  peticiones           Peticion[]
+  emergencyContacts    EmergencyContact[]
+  reservations         Reservation[]
+  surveys              Survey[]
+  workOrders           WorkOrder[]
+  plannedShifts        PlannedShift[]
+  guestPasses          GuestPass[]
+  visitorNotifications VisitorNotification[]
+  panicAlerts          PanicAlert[]
+  assets               Asset[]
+  shiftRecords         ShiftRecord[]
 }
 
 model Address {
-  id           String @id @default(cuid())
+  id           String     @id @default(cuid())
   fullAddress  String
   condominioId String
   condominio   Condominio @relation(fields: [condominioId], references: [id])
@@ -101,7 +101,7 @@ model VehicleInfo {
 }
 
 model VehicularRegistration {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   licensePlate      String
   fullName          String
   visitorType       String
@@ -111,7 +111,7 @@ model VehicularRegistration {
   vehicleBrand      String
   vehicleColor      String
   address           String
-  entryTimestamp    DateTime @default(now())
+  entryTimestamp    DateTime  @default(now())
   exitTimestamp     DateTime?
   condominioId      String
   condominioName    String
@@ -120,11 +120,11 @@ model VehicularRegistration {
 }
 
 model PedestrianRegistration {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   fullName          String
   visitorType       String
   address           String
-  entryTimestamp    DateTime @default(now())
+  entryTimestamp    DateTime  @default(now())
   exitTimestamp     DateTime?
   condominioId      String
   condominioName    String
@@ -155,12 +155,12 @@ model Package {
 }
 
 model BitacoraEntry {
-  id           String           @id @default(cuid())
+  id           String            @id @default(cuid())
   condominioId String
   authorId     String
   authorName   String
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime?        @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime?         @updatedAt
   type         BitacoraEntryType
   text         String
   relatedId    String?
@@ -168,8 +168,8 @@ model BitacoraEntry {
   category     String?
   latitude     Float?
   longitude    Float?
-  condominio   Condominio       @relation(fields: [condominioId], references: [id])
-  author       User             @relation(fields: [authorId], references: [id])
+  condominio   Condominio        @relation(fields: [condominioId], references: [id])
+  author       User              @relation(fields: [authorId], references: [id])
 }
 
 model Peticion {
@@ -191,18 +191,18 @@ model Peticion {
 }
 
 model PeticionComment {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   authorId   String
   authorName String
   text       String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
   peticionId String?
-  peticion   Peticion?  @relation(fields: [peticionId], references: [id])
-  author     User     @relation(fields: [authorId], references: [id])
+  peticion   Peticion? @relation(fields: [peticionId], references: [id])
+  author     User      @relation(fields: [authorId], references: [id])
 }
 
 model ShiftRecord {
-  id             String           @id @default(cuid())
+  id             String             @id @default(cuid())
   guardId        String
   guardName      String
   condominioId   String
@@ -213,8 +213,8 @@ model ShiftRecord {
   equipmentIds   String? // Stored as comma-separated string
   handoverNotes  String?
   incident       ShiftIncidentType?
-  guard          User             @relation(fields: [guardId], references: [id])
-  condominio     Condominio       @relation(fields: [condominioId], references: [id])
+  guard          User               @relation(fields: [guardId], references: [id])
+  condominio     Condominio         @relation(fields: [condominioId], references: [id])
 }
 
 model PlannedShift {
@@ -228,7 +228,7 @@ model PlannedShift {
 }
 
 model Loan {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   guardId      String
   guardName    String
   amount       Float
@@ -237,24 +237,24 @@ model Loan {
   totalOwed    Float
   balance      Float
   status       LoanStatus
-  requestedAt  DateTime    @default(now())
+  requestedAt  DateTime   @default(now())
   approvedAt   DateTime?
   payments     String // Stored as JSON string
-  guard        User        @relation(fields: [guardId], references: [id])
+  guard        User       @relation(fields: [guardId], references: [id])
 }
 
 model Comunicado {
-  id          String   @id @default(cuid())
-  subject     String
-  message     String
-  target      String // 'all' or a condominioId
-  targetName  String
-  channels    String // Stored as comma-separated string
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  subject    String
+  message    String
+  target     String // 'all' or a condominioId
+  targetName String
+  channels   String // Stored as comma-separated string
+  createdAt  DateTime @default(now())
 }
 
 model WorkOrder {
-  id           String         @id @default(cuid())
+  id           String          @id @default(cuid())
   title        String
   description  String
   peticionId   String?
@@ -262,12 +262,12 @@ model WorkOrder {
   address      String
   status       WorkOrderStatus
   assignedTo   String?
-  createdAt    DateTime       @default(now())
+  createdAt    DateTime        @default(now())
   completedAt  DateTime?
   cost         Float?
-  condominio   Condominio     @relation(fields: [condominioId], references: [id])
-  peticion     Peticion?      @relation(fields: [peticionId], references: [id])
-  assignee     User?          @relation(fields: [assignedTo], references: [id])
+  condominio   Condominio      @relation(fields: [condominioId], references: [id])
+  peticion     Peticion?       @relation(fields: [peticionId], references: [id])
+  assignee     User?           @relation(fields: [assignedTo], references: [id])
 }
 
 model Asset {
@@ -343,19 +343,19 @@ model DirectMessage {
 }
 
 model Conversation {
-  id              String          @id @default(cuid())
-  messages        DirectMessage[]
-  lastMessageAt   DateTime        @updatedAt
-  participants    User[]          @relation("UserConversations")
+  id            String          @id @default(cuid())
+  messages      DirectMessage[]
+  lastMessageAt DateTime        @updatedAt
+  participants  User[]          @relation("UserConversations")
 }
 
 model ArchivedPayroll {
-    id          String   @id @default(cuid())
-    periodFrom  DateTime
-    periodTo    DateTime
-    payrollData String // Stored as JSON string
-    totals      String // Stored as JSON string
-    archivedAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  periodFrom  DateTime
+  periodTo    DateTime
+  payrollData String // Stored as JSON string
+  totals      String // Stored as JSON string
+  archivedAt  DateTime @default(now())
 }
 
 model List {
@@ -364,21 +364,21 @@ model List {
 }
 
 model AlertResponse {
-  id                  String   @id @default(cuid())
+  id                  String     @id @default(cuid())
   guardId             String
   guardName           String
   condominioId        String
-  createdAt           DateTime @default(now())
+  createdAt           DateTime   @default(now())
   responseTimeSeconds Int
   selfiePhotoUrl      String
   environmentPhotoUrl String
   comment             String
-  guard               User     @relation(fields: [guardId], references: [id])
+  guard               User       @relation(fields: [guardId], references: [id])
   condominio          Condominio @relation(fields: [condominioId], references: [id])
 }
 
 model GuestPass {
-  id                String    @id @default(cuid())
+  id                String     @id @default(cuid())
   accessType        String
   guestName         String
   visitorType       String
@@ -397,12 +397,12 @@ model GuestPass {
   condominioId      String
   latitude          Float?
   longitude         Float?
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime   @default(now())
   condominio        Condominio @relation(fields: [condominioId], references: [id])
 }
 
 model VisitorNotification {
-  id           String                   @id @default(cuid())
+  id           String                    @id @default(cuid())
   who          String
   visitorType  String
   subject      String
@@ -411,10 +411,10 @@ model VisitorNotification {
   addressId    String
   address      String
   condominioId String
-  createdAt    DateTime                 @default(now())
+  createdAt    DateTime                  @default(now())
   status       VisitorNotificationStatus
-  resident     User                     @relation(fields: [residentId], references: [id])
-  condominio   Condominio               @relation(fields: [condominioId], references: [id])
+  resident     User                      @relation(fields: [residentId], references: [id])
+  condominio   Condominio                @relation(fields: [condominioId], references: [id])
 }
 
 model Reservation {
@@ -459,12 +459,12 @@ model Transaction {
 }
 
 model PanicAlert {
-    id           String   @id @default(cuid())
-    condominioId String
-    guardId      String
-    guardName    String
-    createdAt    DateTime @default(now())
-    condominio   Condominio @relation(fields: [condominioId], references: [id])
+  id           String     @id @default(cuid())
+  condominioId String
+  guardId      String
+  guardName    String
+  createdAt    DateTime   @default(now())
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
 }
 
 enum UserRole {
@@ -497,15 +497,15 @@ enum PackageStatus {
 }
 
 enum ReservationStatus {
-    Pendiente
-    Aprobada
-    Rechazada
+  Pendiente
+  Aprobada
+  Rechazada
 }
 
 enum VisitorNotificationStatus {
-    Activa
-    Utilizada
-    Cancelada
+  Activa
+  Utilizada
+  Cancelada
 }
 
 enum ShiftIncidentType {
@@ -521,31 +521,31 @@ enum ShiftIncidentType {
 }
 
 enum LoanStatus {
-    Pendiente
-    Aprobado
-    Rechazado
-    Pagado
+  Pendiente
+  Aprobado
+  Rechazado
+  Pagado
 }
 
 enum WorkOrderStatus {
-    Pendiente
-    Asignada
-    En_Progreso
-    Completada
-    Cancelada
+  Pendiente
+  Asignada
+  En_Progreso
+  Completada
+  Cancelada
 }
 
 enum PeticionCategory {
-    General
-    Financiera
-    Emergencia
+  General
+  Financiera
+  Emergencia
 }
 
 // Relation table for User and Condominio (many-to-many)
 model _UserCondos {
-  A String
-  B String
+A String
+B String
 
-  @@unique([A, B])
-  @@index([B])
+@@unique([A, B])
+@@index([B])
 }
