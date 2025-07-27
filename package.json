@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "queries": "tsx prisma/script.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.13.0",
@@ -73,6 +74,7 @@
     "postcss": "^8",
     "prisma": "latest",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.16.2",
     "typescript": "^5"
   }
 }
