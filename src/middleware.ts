@@ -1,4 +1,9 @@
-
+pg_dump \
+     -Fc \
+          -v \
+               -d DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqd3RfaWQiOjEsInNlY3VyZV9rZXkiOiJza19zQkNwbUE1NDAwUmRrTW43VnZZakIiLCJhcGlfa2V5IjoiMDFLMTVaRDQwS1Y5WjdZRkcxUVlLRTc2OUciLCJ0ZW5hbnRfaWQiOiI4Y2UwNzZlYmQzNTU5ZTVmMDViNWFkODZkZDQxYjE0YzZjYzU0ODU1NzZkODk2OWFkNTliZjkxMTU4ODgzN2YwIiwiaW50ZXJuYWxfc2VjcmV0IjoiMTk4OTEyZDMtZGI3Yy00ZDc0LWI3YTEtOGRlMjAxY2MzZDA1In0.B6CUi2LtX8rnzZDSi4XlqYMtAZ2Rx0gUIiJIBK90VT0" \
+                    -n public \
+                         -f db_dump.bak
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { UserRole } from '@/lib/definitions';
