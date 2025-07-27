@@ -7,19 +7,30 @@ import GuardClientLayout from './guard-client-layout';
 import type { User } from '@/lib/definitions';
 import { Skeleton } from '@/components/ui/skeleton';
 
+function getUserFromSession(): User | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    const userJson = window.sessionStorage.getItem('loggedInUser');
+    if (!userJson) {
+        return null;
+    }
+    return JSON.parse(userJson);
+}
+
+
 export default function GuardiaLayout({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        const storedUser = sessionStorage.getItem('loggedInUser');
+        const storedUser = getUserFromSession();
         if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser.role !== 'Guardia') {
+            if (storedUser.role !== 'Guardia') {
                 router.replace('/');
             } else {
-                setUser(parsedUser);
+                setUser(storedUser);
             }
         } else {
             router.replace('/');

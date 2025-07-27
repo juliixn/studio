@@ -10,7 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { login, saveUserToSession } from '@/lib/authService';
+import { login } from '@/lib/authService';
+import type { User } from '@/lib/definitions';
+
+function saveUserToSession(user: User) {
+    if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+    }
+}
+
 
 function ForgotPasswordForm({ onBackToLogin }: { onBackToLogin: () => void }) {
   const { toast } = useToast();

@@ -1,11 +1,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import type { UserRole } from '@/lib/definitions';
-// We cannot use server-side libraries like Prisma in middleware.
-// The session check must be done using cookies or other edge-compatible methods.
-// For this simulation, we'll rely on a user cookie.
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('loggedInUser');
   let user = null;
   if(sessionCookie) {
