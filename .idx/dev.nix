@@ -8,10 +8,7 @@
     pkgs.nodejs_20
     pkgs.zulu
     pkgs.openssl
-    pkgs.prisma{
-    enterShell = ''
-    npm install
-  '';}
+    pkgs.prisma
   ];
   # Sets environment variables in the workspace
   env = {};
