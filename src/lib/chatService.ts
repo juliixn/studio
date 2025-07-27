@@ -1,34 +1,31 @@
 
-"use client";
+"use server";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { ChatMessage } from './definitions';
 
 export async function getChatMessages(): Promise<ChatMessage[]> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('guard_chat_messages')
-        .select('*')
-        .order('createdAt', { ascending: true });
-        
-    if (error) {
+    try {
+        const messages = await prisma.chatMessage.findMany({
+            orderBy: {
+                createdAt: 'asc',
+            },
+        });
+        return JSON.parse(JSON.stringify(messages));
+    } catch (error) {
         console.error("Error fetching chat messages:", error);
         return [];
     }
-    return data as ChatMessage[];
 }
 
 export async function sendChatMessage(message: Omit<ChatMessage, 'id' | 'createdAt'>): Promise<ChatMessage | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('guard_chat_messages')
-        .insert([{ ...message }])
-        .select()
-        .single();
-    
-    if (error) {
+    try {
+        const newMessage = await prisma.chatMessage.create({
+            data: message,
+        });
+        return JSON.parse(JSON.stringify(newMessage));
+    } catch (error) {
         console.error("Error sending chat message:", error);
         return null;
     }
-    return data as ChatMessage;
 }

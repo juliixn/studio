@@ -1,25 +1,16 @@
 
 'use server';
 
-import { cookies } from 'next/headers';
 import type { User } from './definitions';
 
-// This function now works on the server by reading the cookie
-export async function getUserFromSession(): Promise<User | null> {
-    const cookieStore = cookies();
-    const sessionCookie = cookieStore.get('loggedInUser');
-    if (sessionCookie?.value) {
-        try {
-            return JSON.parse(sessionCookie.value);
-        } catch (e) {
-            console.error('Failed to parse user cookie in server component:', e);
-            return null;
-        }
+// This function can be used in client components to get the currently logged-in user.
+export function getUserFromSession(): User | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    const storedUser = window.sessionStorage.getItem('loggedInUser');
+    if (storedUser) {
+        return JSON.parse(storedUser);
     }
     return null;
-}
-
-// This function works on the server to clear the cookie
-export async function logout() {
-    cookies().delete('loggedInUser');
 }

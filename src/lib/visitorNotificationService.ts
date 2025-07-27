@@ -1,73 +1,68 @@
 
-"use client";
+"use server";
 
-import { mockVisitorNotifications as initialData } from './data';
+import prisma from './prisma';
 import type { VisitorNotification } from './definitions';
+import { subHours } from 'date-fns';
 
-const STORAGE_KEY = 'visitorNotifications-v2';
-
-function getFromStorage(): VisitorNotification[] {
-    if (typeof window === 'undefined') return initialData;
+export async function getVisitorNotifications(condominioId?: string, residentId?: string): Promise<VisitorNotification[]> {
     try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
-    } catch (error) {
-        console.error(`Error parsing sessionStorage key "${STORAGE_KEY}":`, error);
-    }
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-    return initialData;
-}
-
-function saveToStorage(notifications: VisitorNotification[]) {
-    if (typeof window !== 'undefined') {
-        const sorted = notifications.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
-    }
-}
-
-export function getVisitorNotifications(condominioId?: string, residentId?: string): VisitorNotification[] {
-    let all = getFromStorage();
-    if (condominioId) {
-        all = all.filter(n => n.condominioId === condominioId);
-    }
-    if (residentId) {
-        all = all.filter(n => n.residentId === residentId);
-    }
-
-    const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-    // Filter out expired notifications on the client side
-    return all.filter(n => {
-        if (n.status === 'Activa') {
-            const createdAt = new Date(n.createdAt);
-            return createdAt > twentyFourHoursAgo;
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
         }
-        return true;
-    });
-}
+        if (residentId) {
+            whereClause.residentId = residentId;
+        }
 
-export function addVisitorNotification(payload: Omit<VisitorNotification, 'id'|'createdAt'|'status'|'residentName'|'address'>): VisitorNotification {
-    const all = getFromStorage();
-    const newNotification = {
-        ...payload,
-        id: `vn-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        status: 'Activa' as const,
-        residentName: 'N/A', // These should be looked up if needed
-        address: 'N/A',
-    };
-    saveToStorage([newNotification, ...all]);
-    return newNotification;
-}
+        const notifications = await prisma.visitorNotification.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'desc' },
+        });
 
-export function updateVisitorNotification(notificationId: string, payload: Partial<VisitorNotification>): VisitorNotification | null {
-    const all = getFromStorage();
-    const index = all.findIndex(n => n.id === notificationId);
-    if (index > -1) {
-        all[index] = { ...all[index], ...payload };
-        saveToStorage(all);
-        return all[index];
+        const now = new Date();
+        const twentyFourHoursAgo = subHours(now, 24);
+
+        // Filter out expired notifications on the server side
+        const validNotifications = notifications.filter(n => {
+            if (n.status === 'Activa') {
+                return new Date(n.createdAt) > twentyFourHoursAgo;
+            }
+            return true;
+        });
+
+        return JSON.parse(JSON.stringify(validNotifications));
+
+    } catch (error) {
+        console.error("Error fetching visitor notifications:", error);
+        return [];
     }
-    return null;
+}
+
+export async function addVisitorNotification(payload: Omit<VisitorNotification, 'id' | 'createdAt' | 'status'>): Promise<VisitorNotification | null> {
+     try {
+        const newNotification = await prisma.visitorNotification.create({
+            data: {
+                ...payload,
+                status: 'Activa',
+            },
+        });
+        return JSON.parse(JSON.stringify(newNotification));
+    } catch (error) {
+        console.error("Error adding visitor notification:", error);
+        return null;
+    }
+}
+
+export async function updateVisitorNotification(notificationId: string, payload: Partial<Omit<VisitorNotification, 'id'>>): Promise<VisitorNotification | null> {
+    try {
+        const updatedNotification = await prisma.visitorNotification.update({
+            where: { id: notificationId },
+            data: payload,
+        });
+        return JSON.parse(JSON.stringify(updatedNotification));
+    } catch (error) {
+        console.error(`Error updating visitor notification ${notificationId}:`, error);
+        return null;
+    }
 }

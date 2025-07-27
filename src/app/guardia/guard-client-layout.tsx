@@ -10,7 +10,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { LogOut, User as UserIcon } from 'lucide-react';
 import LiveClock from '@/components/live-clock';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
 import { endShift } from '@/lib/shiftService';
 
 export default function GuardClientLayout({ user: initialUser, children }: { user: User, children: React.ReactNode }) {
@@ -19,8 +18,6 @@ export default function GuardClientLayout({ user: initialUser, children }: { use
     const [user, setUser] = useState<User | null>(initialUser);
     const [turnoInfo, setTurnoInfo] = useState<TurnoInfo | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const supabase = createClient();
 
     useEffect(() => {
         sessionStorage.setItem('loggedInUser', JSON.stringify(initialUser));
@@ -49,7 +46,6 @@ export default function GuardClientLayout({ user: initialUser, children }: { use
         if (currentShiftId) {
             await endShift(currentShiftId);
         }
-        await supabase.auth.signOut();
         sessionStorage.removeItem('turnoInfo');
         sessionStorage.removeItem('currentShiftId');
         sessionStorage.removeItem('loggedInUser');

@@ -3,7 +3,6 @@
 
 import type { User } from './definitions';
 import prisma from './prisma';
-import { cookies } from 'next/headers';
 
 export async function login(email: string, pass: string): Promise<{ success: boolean; user?: User; message: string }> {
     try {
@@ -19,18 +18,10 @@ export async function login(email: string, pass: string): Promise<{ success: boo
             return { success: false, message: 'Contraseña incorrecta.' };
         }
         
-        // Remove password before storing in cookie
-        const { password, ...userToStore } = user;
+        // Remove password before sending to client
+        const { password, ...userToReturn } = user;
 
-        // Set a cookie for the session
-        cookies().set('loggedInUser', JSON.stringify(userToStore), {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24, // 1 day
-            path: '/',
-        });
-
-        return { success: true, user: JSON.parse(JSON.stringify(user)), message: 'Inicio de sesión exitoso.' };
+        return { success: true, user: JSON.parse(JSON.stringify(userToReturn)), message: 'Inicio de sesión exitoso.' };
 
     } catch (error) {
         console.error("Login error:", error);

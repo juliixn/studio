@@ -2,161 +2,108 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                    String    @id @default(cuid())
-  username              String    @unique
-  name                  String
-  email                 String    @unique
-  password              String
-  role                  UserRole
-  photoUrl              String?
-  dailySalary           Float?
-  allowRemoteCheckIn    Boolean?  @default(false)
-  loanLimit             Float?
-  interestRate          Float?
-  leaseStartDate        DateTime?
-  leaseEndDate          DateTime?
-  numberOfInhabitants   Int?
-  inhabitantNames       String[]
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
+  id                      String                 @id @default(cuid())
+  username                String                 @unique
+  name                    String
+  email                   String                 @unique
+  password                String
+  role                    UserRole
+  photoUrl                String?
+  condominioIds           String[]
+  addressIds              String[]
+  dailySalary             Float?
+  allowRemoteCheckIn      Boolean?
+  loanLimit               Float?
+  interestRate            Float?
+  leaseStartDate          DateTime?
+  leaseEndDate            DateTime?
+  numberOfInhabitants     Int?
+  inhabitantNames         String[]
   // Relations
-  condominios           Condominio[] @relation("CondominioAdmins")
-  domicilios            Address[]    @relation("UserAddresses")
-  vehicles              Vehicle[]    @relation("UserVehicles")
-  createdPeticiones     Peticion[]   @relation("CreatedPeticiones")
-  createdBitacora       BitacoraEntry[]
-  createdGuestPasses    GuestPass[]
-  packagesForUser       Package[]    @relation("PackagesForUser")
-  createdReservations   Reservation[]
-  createdAlertResponses AlertResponse[]
-  createdLoans          Loan[]
-  assignedShifts        PlannedShift[]
-  shiftRecords          ShiftRecord[]
-  assignedWorkOrders    WorkOrder[]  @relation("AssignedWorkOrders")
-
-  @@map("users")
+  vehicles                Vehicle[]
+  peticiones              Peticion[]
+  peticionComments        PeticionComment[]
+  bitacoraEntries         BitacoraEntry[]
+  shifts                  ShiftRecord[]
+  packagesReceived        Package[]              @relation("ReceivedPackages")
+  packagesDeliveredTo     Package[]              @relation("DeliveredToPackages")
+  reservations            Reservation[]
+  surveysVotedOn          Survey[]
+  workOrdersAssigned      WorkOrder[]
+  domicilios              Address[]
+  condominios             Condominio[]
+  conversations           Conversation[]         @relation("UserConversations")
+  alertResponses          AlertResponse[]
+  createdCommunityEvents  CommunityEvent[]
+  createdNotifications    VisitorNotification[]
+  chatMessages            ChatMessage[]          @relation("ChatMessages")
+  loans                   Loan[]
+  directMessagesSent      DirectMessage[]        @relation("SentMessages")
+  directMessagesReceived  DirectMessage[]        @relation("ReceivedMessages")
 }
 
 model Condominio {
-  id                     String    @id @default(cuid())
+  id                     String                  @id @default(cuid())
   name                   String
   mainAddress            String
   latitude               Float?
   longitude              Float?
-  status                 String    @default("Activo") // Activo, Suspendido
-  geofenceRadius         Int?      @default(200)
-  guardsRequiredDiurno   Int?      @default(1)
-  guardsRequiredNocturno Int?      @default(1)
+  status                 String
+  guardIds               String[]
+  geofenceRadius         Int?
+  guardsRequiredDiurno   Int?
+  guardsRequiredNocturno Int?
   guardMenuSections      String[]
-
   // Relations
-  admins                 User[]        @relation("CondominioAdmins")
   addresses              Address[]
   peticiones             Peticion[]
   bitacoraEntries        BitacoraEntry[]
   vehicularRegistrations VehicularRegistration[]
   pedestrianRegistrations PedestrianRegistration[]
   packages               Package[]
-  guestPasses            GuestPass[]
-  emergencyContacts      EmergencyContact[]
-  assets                 Asset[]
   reservations           Reservation[]
-  workOrders             WorkOrder[]
-  surveys                Survey[]
-  plannedShifts          PlannedShift[]
+  notifications          VisitorNotification[]
+  alertResponses         AlertResponse[]
   shiftRecords           ShiftRecord[]
-
-  @@map("condominios")
+  assets                 Asset[]
+  surveys                Survey[]
+  events                 CommunityEvent[]
+  commonAreas            CommonArea[]
+  workOrders             WorkOrder[]
+  emergencyContacts      EmergencyContact[]
+  users                  User[]
+  plannedShifts          PlannedShift[]
 }
 
 model Address {
   id           String @id @default(cuid())
   fullAddress  String
   condominioId String
-  condominio   Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-
   // Relations
-  users        User[] @relation("UserAddresses")
-
-  @@unique([fullAddress, condominioId])
-  @@map("addresses")
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  users        User[]
 }
 
 model Vehicle {
   id           String  @id @default(cuid())
-  userId       String
   alias        String?
   licensePlate String
   brand        String
   color        String
   type         String
-  user         User    @relation("UserVehicles", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_vehicles")
-}
-
-model Peticion {
-  id              String           @id @default(cuid())
-  title           String
-  description     String
-  creatorId       String
-  creatorName     String
-  creatorRole     UserRole
-  condominioId    String
-  condominioName  String
-  status          String           @default("Abierta") // Abierta, En Progreso, Cerrada
-  category        String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  creator         User             @relation("CreatedPeticiones", fields: [creatorId], references: [id])
-  condominio      Condominio       @relation(fields: [condominioId], references: [id])
-  comments        PeticionComment[]
-  workOrder       WorkOrder?
-
-  @@map("peticiones")
-}
-
-model PeticionComment {
-  id         String   @id @default(cuid())
-  peticionId String
-  authorId   String
-  authorName String
-  text       String
-  createdAt  DateTime @default(now())
-  peticion   Peticion @relation(fields: [peticionId], references: [id], onDelete: Cascade)
-
-  @@map("peticion_comments")
-}
-
-model BitacoraEntry {
-  id          String   @id @default(cuid())
-  condominioId String
-  authorId    String
-  authorName  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  type        String // Manual, Registro Vehicular, etc.
-  text        String
-  relatedId   String?
-  photos      String[]
-  category    String?
-  latitude    Float?
-  longitude   Float?
-  author      User     @relation(fields: [authorId], references: [id])
-  condominio  Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("bitacora_entries")
+  userId       String
+  // Relation
+  user         User    @relation(fields: [userId], references: [id])
 }
 
 model VehicularRegistration {
@@ -176,9 +123,8 @@ model VehicularRegistration {
   condominioName    String
   visitorIdPhotoUrl String?
   vehiclePhotoUrl   String?
+  // Relation
   condominio        Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("vehicular_registrations")
 }
 
 model PedestrianRegistration {
@@ -191,17 +137,325 @@ model PedestrianRegistration {
   condominioId      String
   condominioName    String
   visitorIdPhotoUrl String?
+  // Relation
   condominio        Condominio @relation(fields: [condominioId], references: [id])
+}
 
-  @@map("pedestrian_registrations")
+model Package {
+  id                   String        @id @default(cuid())
+  recipientAddressId   String
+  recipientAddress     String
+  recipientName        String
+  recipientId          String
+  trackingNumber       String?
+  courierName          String
+  courierCompany       String
+  status               PackageStatus
+  receivedAt           DateTime      @default(now())
+  deliveredAt          DateTime?
+  receivedByGuardId    String
+  receivedByGuardName  String
+  deliveredToName      String?
+  deliveredToId        String?
+  condominioId         String
+  damageNotes          String?
+  deliveryPhotoUrl     String?
+  deliverySignatureUrl String?
+  // Relations
+  condominio           Condominio @relation(fields: [condominioId], references: [id])
+  recipient            User       @relation("ReceivedPackages", fields: [recipientId], references: [id])
+  deliveredTo          User?      @relation("DeliveredToPackages", fields: [deliveredToId], references: [id])
+}
+
+model BitacoraEntry {
+  id           String          @id @default(cuid())
+  condominioId String
+  authorId     String
+  authorName   String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime?       @updatedAt
+  type         BitacoraEntryType
+  text         String
+  relatedId    String?
+  photos       String[]
+  category     String?
+  latitude     Float?
+  longitude    Float?
+  // Relations
+  author       User            @relation(fields: [authorId], references: [id])
+  condominio   Condominio      @relation(fields: [condominioId], references: [id])
+}
+
+model AlertResponse {
+  id                  String   @id @default(cuid())
+  guardId             String
+  guardName           String
+  condominioId        String
+  createdAt           DateTime @default(now())
+  responseTimeSeconds Int
+  selfiePhotoUrl      String
+  environmentPhotoUrl String
+  comment             String
+  // Relation
+  guard               User     @relation(fields: [guardId], references: [id])
+  condominio          Condominio @relation(fields: [condominioId], references: [id])
+}
+
+model ShiftRecord {
+  id             String             @id @default(cuid())
+  guardId        String
+  guardName      String
+  condominioId   String
+  condominioName String
+  turno          String
+  startTime      DateTime
+  endTime        DateTime?
+  equipmentIds   String[]
+  handoverNotes  String?
+  incident       ShiftIncidentType?
+  // Relation
+  guard          User               @relation(fields: [guardId], references: [id])
+  condominio     Condominio         @relation(fields: [condominioId], references: [id])
+}
+
+model PlannedShift {
+  id           String     @id @default(cuid())
+  date         String // YYYY-MM-DD
+  condominioId String
+  turno        String // Diurno or Nocturno
+  slot         Int
+  guardId      String?
+  // Relations
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+}
+
+model HandoverNote {
+  id          String   @id @default(cuid())
+  condominioId String
+  authorId    String
+  authorName  String
+  notes       String
+  createdAt   DateTime @default(now())
+}
+
+model List {
+  key    String   @id
+  values String[]
+}
+
+model EmergencyContact {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String
+  description  String?
+  condominioId String
+  // Relation
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+}
+
+model Asset {
+  id                  String    @id @default(cuid())
+  name                String
+  category            String
+  location            String
+  condominioId        String
+  purchaseDate        DateTime?
+  lastMaintenanceDate DateTime?
+  nextMaintenanceDate DateTime?
+  status              String
+  // Relation
+  condominio          Condominio @relation(fields: [condominioId], references: [id])
+}
+
+model CommonArea {
+  id            String        @id @default(cuid())
+  name          String
+  description   String
+  capacity      Int
+  condominioId  String
+  imageUrl      String?
+  rules         String?
+  cost          Float?
+  openingTime   String?
+  closingTime   String?
+  // Relations
+  condominio    Condominio    @relation(fields: [condominioId], references: [id])
+  reservations  Reservation[]
+}
+
+model Reservation {
+  id           String   @id @default(cuid())
+  areaId       String
+  areaName     String
+  userId       String
+  userName     String
+  date         String // YYYY-MM-DD
+  startTime    String
+  endTime      String
+  status       String
+  condominioId String
+  createdAt    DateTime @default(now())
+  // Relations
+  area         CommonArea @relation(fields: [areaId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+}
+
+model CommunityEvent {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  condominioId String
+  start        DateTime
+  end          DateTime
+  isAllDay     Boolean
+  location     String?
+  // Relation
+  creator      User       @relation(fields: [creatorId], references: [id])
+  creatorId    String
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+}
+
+model Survey {
+  id           String       @id @default(cuid())
+  title        String
+  description  String
+  condominioId String
+  options      Json
+  createdAt    DateTime     @default(now())
+  closesAt     DateTime
+  status       String
+  // Relation
+  condominio   Condominio   @relation(fields: [condominioId], references: [id])
+  voters       User[]
+}
+
+model WorkOrder {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  peticionId   String?  @unique
+  condominioId String
+  address      String
+  status       String
+  assignedTo   String?
+  assigneeId   String?
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+  cost         Float?
+  // Relations
+  condominio   Condominio @relation(fields: [condominioId], references: [id])
+  peticion     Peticion?  @relation(fields: [peticionId], references: [id])
+  assignee     User?      @relation(fields: [assigneeId], references: [id])
+}
+
+model Peticion {
+  id             String            @id @default(cuid())
+  title          String
+  description    String
+  creatorId      String
+  creatorName    String
+  creatorRole    UserRole
+  condominioId   String
+  condominioName String
+  status         PeticionStatus
+  category       PeticionCategory?
+  createdAt      DateTime          @default(now())
+  // Relations
+  creator        User              @relation(fields: [creatorId], references: [id])
+  condominio     Condominio        @relation(fields: [condominioId], references: [id])
+  comments       PeticionComment[]
+  workOrder      WorkOrder?
+}
+
+model PeticionComment {
+  id        String   @id @default(cuid())
+  authorId  String
+  authorName String
+  text      String
+  createdAt DateTime @default(now())
+  peticionId String
+  // Relation
+  peticion  Peticion @relation(fields: [peticionId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  authorId   String
+  authorName String
+  text       String
+  createdAt  DateTime @default(now())
+  // Relation
+  author     User     @relation("ChatMessages", fields: [authorId], references: [id])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  authorId       String
+  authorName     String
+  text           String
+  createdAt      DateTime     @default(now())
+  conversationId String
+  // Relations
+  author         User         @relation("SentMessages", fields: [authorId], references: [id])
+  recipient      User         @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  recipientId    String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+}
+
+model Conversation {
+  id              String          @id @default(cuid())
+  participantIds  String[]
+  participantNames String[]
+  lastMessageAt   DateTime        @updatedAt
+  // Relations
+  messages        DirectMessage[]
+  participants    User[]          @relation("UserConversations")
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  residentId String
+  date       DateTime
+  type       String // 'charge' or 'payment'
+  concept    String
+  amount     Float
+}
+
+model Loan {
+  id           String   @id @default(cuid())
+  guardId      String
+  guardName    String
+  amount       Float
+  reason       String
+  interestRate Float
+  totalOwed    Float
+  balance      Float
+  status       LoanStatus
+  requestedAt  DateTime @default(now())
+  approvedAt   DateTime?
+  payments     Json
+  // Relation
+  guard        User     @relation(fields: [guardId], references: [id])
+}
+
+model Comunicado {
+  id         String   @id @default(cuid())
+  subject    String
+  message    String
+  target     String
+  targetName String
+  channels   String[]
+  createdAt  DateTime @default(now())
 }
 
 model GuestPass {
   id                String   @id @default(cuid())
-  accessType        String // vehicular, pedestrian
+  accessType        String
   guestName         String
   visitorType       String
-  passType          String // temporal, permanent
+  passType          String
   validUntil        DateTime?
   licensePlate      String?
   vehicleType       String?
@@ -217,239 +471,29 @@ model GuestPass {
   latitude          Float?
   longitude         Float?
   createdAt         DateTime @default(now())
-  resident          User     @relation(fields: [residentId], references: [id])
-  condominio        Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("guest_passes")
 }
 
-model Package {
-  id                     String   @id @default(cuid())
-  recipientId            String
-  recipientAddressId     String
-  recipientAddress       String
-  recipientName          String
-  trackingNumber         String?
-  courierName            String
-  courierCompany         String
-  status                 String   @default("En Recepción") // En Recepción, Entregado, Con Daño
-  receivedAt             DateTime @default(now())
-  deliveredAt            DateTime?
-  receivedByGuardId      String
-  receivedByGuardName    String
-  deliveredToName        String?
-  condominioId           String
-  damageNotes            String?
-  deliveryPhotoUrl       String?
-  deliverySignatureUrl   String?
-  recipient              User     @relation("PackagesForUser", fields: [recipientId], references: [id])
-  condominio             Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("packages")
+enum VisitorNotificationStatus {
+  Activa
+  Utilizada
+  Cancelada
 }
 
-model EmergencyContact {
-  id          String  @id @default(cuid())
-  name        String
-  phone       String
-  description String?
-  condominioId String
-  condominio  Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("emergency_contacts")
-}
-
-model Asset {
-  id                  String   @id @default(cuid())
-  name                String
-  category            String
-  location            String
-  condominioId        String
-  purchaseDate        DateTime?
-  lastMaintenanceDate DateTime?
-  nextMaintenanceDate DateTime?
-  status              String   @default("Operativo") // Operativo, En Mantenimiento, Requiere Reemplazo
-  condominio          Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("assets")
-}
-
-model Reservation {
-  id           String   @id @default(cuid())
-  areaId       String
-  areaName     String
-  userId       String
-  userName     String
-  date         String // YYYY-MM-DD
-  startTime    String
-  endTime      String
-  status       String   @default("Pendiente") // Pendiente, Aprobada, Rechazada
-  condominioId String
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id])
-  condominio   Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("reservations")
-}
-
-model WorkOrder {
-  id           String   @id @default(cuid())
-  title        String
-  description  String
-  peticionId   String?  @unique
-  condominioId String
+model VisitorNotification {
+  id           String                    @id @default(cuid())
+  who          String
+  visitorType  String
+  subject      String
+  residentId   String
+  residentName String
+  addressId    String
   address      String
-  status       String   @default("Pendiente") // Pendiente, Asignada, En Progreso, Completada, Cancelada
-  assignedToId String?
-  createdAt    DateTime @default(now())
-  completedAt  DateTime?
-  cost         Float?
-  assignedTo   User?    @relation("AssignedWorkOrders", fields: [assignedToId], references: [id])
-  condominio   Condominio @relation(fields: [condominioId], references: [id])
-  peticion     Peticion?  @relation(fields: [peticionId], references: [id])
-
-  @@map("work_orders")
-}
-
-model Survey {
-  id           String         @id @default(cuid())
-  title        String
-  description  String
   condominioId String
-  options      Json
-  createdAt    DateTime       @default(now())
-  closesAt     DateTime
-  status       String         @default("Abierta") // Abierta, Cerrada
-  condominio   Condominio     @relation(fields: [condominioId], references: [id])
-
-  @@map("surveys")
-}
-
-model CommunityEvent {
-  id           String   @id @default(cuid())
-  title        String
-  description  String
-  condominioId String
-  start        DateTime
-  end          DateTime
-  isAllDay     Boolean
-  location     String?
-
-  @@map("community_events")
-}
-
-model AlertResponse {
-  id                  String   @id @default(cuid())
-  guardId             String
-  guardName           String
-  condominioId        String
-  createdAt           DateTime @default(now())
-  responseTimeSeconds Int
-  selfiePhotoUrl      String
-  environmentPhotoUrl String
-  comment             String
-  guard               User     @relation(fields: [guardId], references: [id])
-
-  @@map("alert_responses")
-}
-
-model ShiftRecord {
-  id             String    @id @default(cuid())
-  guardId        String
-  guardName      String
-  condominioId   String
-  condominioName String
-  turno          String // Diurno, Nocturno, Apoyo
-  startTime      DateTime
-  endTime        DateTime?
-  equipmentIds   String[]
-  handoverNotes  String?
-  incident       String?
-  guard          User      @relation(fields: [guardId], references: [id])
-  condominio     Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("shift_records")
-}
-
-model PlannedShift {
-  id           String   @id
-  date         String // YYYY-MM-DD
-  condominioId String
-  turno        String // Diurno, Nocturno
-  slot         Int
-  guardId      String?
-  guard        User?    @relation(fields: [guardId], references: [id])
-  condominio   Condominio @relation(fields: [condominioId], references: [id])
-
-  @@map("planned_shifts")
-}
-
-model ArchivedPayroll {
-  id          String   @id @default(cuid())
-  period      Json // { from: আইএসওস্ট্রিং, to: আইএসওস্ট্রিং }
-  payrollData Json // Array<PayrollData>
-  totals      Json
-  archivedAt  DateTime @default(now())
-
-  @@map("archived_payrolls")
-}
-
-model Loan {
-  id           String   @id @default(cuid())
-  guardId      String
-  guardName    String
-  amount       Float
-  reason       String
-  interestRate Float
-  totalOwed    Float
-  balance      Float
-  status       String   @default("Pendiente") // Pendiente, Aprobado, Rechazado, Pagado
-  requestedAt  DateTime @default(now())
-  approvedAt   DateTime?
-  payments     Json     @default("[]") // { payrollId: string, amount: number, date: string }[]
-  guard        User     @relation(fields: [guardId], references: [id])
-
-  @@map("loans")
-}
-
-model Transaction {
-  id         String   @id @default(cuid())
-  residentId String
-  date       DateTime
-  type       String // charge, payment
-  concept    String
-  amount     Float
-
-  @@map("transactions")
-}
-
-model List {
-  key    String   @id
-  values String[]
-
-  @@map("lists")
-}
-
-model DirectMessage {
-  id             String       @id @default(cuid())
-  conversationId String
-  authorId       String
-  authorName     String
-  text           String
-  createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  @@map("direct_messages")
-}
-
-model Conversation {
-  id              String          @id
-  participantIds  String[]
-  participantNames String[]
-  messages        DirectMessage[]
-  lastMessageAt   DateTime        @updatedAt
-
-  @@map("conversations")
+  createdAt    DateTime                  @default(now())
+  status       VisitorNotificationStatus
+  // Relations
+  resident     User                      @relation(fields: [residentId], references: [id])
+  condominio   Condominio                @relation(fields: [condominioId], references: [id])
 }
 
 enum UserRole {
@@ -458,4 +502,59 @@ enum UserRole {
   Renta
   Guardia
   Adm_Condo
+}
+
+enum PackageStatus {
+  En_Recepcion
+  Entregado
+  Con_Dano
+}
+
+enum PeticionStatus {
+  Abierta
+  En_Progreso
+  Cerrada
+}
+
+enum PeticionCategory {
+  General
+  Financiera
+  Emergencia
+}
+
+enum BitacoraEntryType {
+  Manual
+  Registro_Vehicular
+  Registro_Peatonal
+  Peticion_Creada
+  Alerta_Respondida
+  Incidente_Reportado
+}
+
+enum LoanStatus {
+  Pendiente
+  Aprobado
+  Rechazado
+  Pagado
+}
+
+enum ShiftIncidentType {
+  Falta
+  Permiso_con_Goce
+  Permiso_sin_Goce
+  Enfermedad_General
+  Incapacidad
+  Vacaciones
+  Adelanto_de_Turno
+  Doble_Turno
+  Penalizacion
+}
+
+model ArchivedPayroll {
+  id          String   @id @default(cuid())
+  periodFrom  DateTime
+  periodTo    DateTime
+  payrollData Json
+  totals      Json
+  archivedAt  DateTime @default(now())
 }

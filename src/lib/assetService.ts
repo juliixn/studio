@@ -1,49 +1,59 @@
 
-"use client";
+"use server";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { Asset } from './definitions';
 
 export async function getAssets(condominioId?: string): Promise<Asset[]> {
-    const supabase = createClient();
-    let query = supabase.from('assets').select('*');
-    if (condominioId) {
-        query = query.eq('condominioId', condominioId);
-    }
-    const { data, error } = await query.order('name');
-    if (error) {
+    try {
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
+        }
+        const assets = await prisma.asset.findMany({
+            where: whereClause,
+            orderBy: { name: 'asc' }
+        });
+        return JSON.parse(JSON.stringify(assets));
+    } catch (error) {
         console.error("Error fetching assets:", error);
         return [];
     }
-    return data as Asset[];
 }
 
 export async function addAsset(assetData: Omit<Asset, 'id'>): Promise<Asset | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('assets').insert([assetData]).select().single();
-    if (error) {
+    try {
+        const newAsset = await prisma.asset.create({
+            data: assetData,
+        });
+        return JSON.parse(JSON.stringify(newAsset));
+    } catch (error) {
         console.error("Error adding asset:", error);
         return null;
     }
-    return data as Asset;
 }
 
 export async function updateAsset(assetId: string, updates: Partial<Omit<Asset, 'id'>>): Promise<Asset | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('assets').update(updates).eq('id', assetId).select().single();
-    if (error) {
+    try {
+        const updatedAsset = await prisma.asset.update({
+            where: { id: assetId },
+            data: updates,
+        });
+        return JSON.parse(JSON.stringify(updatedAsset));
+    } catch (error) {
         console.error(`Error updating asset ${assetId}:`, error);
         return null;
     }
-    return data as Asset;
 }
 
 export async function deleteAsset(assetId: string): Promise<boolean> {
-    const supabase = createClient();
-    const { error } = await supabase.from('assets').delete().eq('id', assetId);
-    if (error) {
+    try {
+        await prisma.asset.delete({
+            where: { id: assetId },
+        });
+        return true;
+    } catch (error) {
         console.error(`Error deleting asset ${assetId}:`, error);
         return false;
     }
-    return true;
 }
