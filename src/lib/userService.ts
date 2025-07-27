@@ -1,129 +1,82 @@
 
 "use client";
 
-import { createClient } from './supabase/client';
+import { mockUsers as initialData } from './data';
 import type { User } from './definitions';
+import prisma from './prisma';
 
-export async function getUsers(): Promise<User[]> {
-    const supabase = createClient();
-    const { data: profiles, error } = await supabase.from('profiles').select('*');
-    if (error) {
-        console.error("Error fetching users:", error);
-        return [];
+const STORAGE_KEY = 'users-v4';
+
+// --- Local Storage Functions (for client-side simulation) ---
+
+function getFromStorage(): User[] {
+    if (typeof window === 'undefined') {
+        return initialData;
     }
-    return profiles as User[];
+    try {
+        const storedData = sessionStorage.getItem(STORAGE_KEY);
+        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
+            return JSON.parse(storedData);
+        }
+    } catch (error) {
+        console.error(`Failed to parse from sessionStorage key "${STORAGE_KEY}", re-initializing.`, error);
+    }
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+    return initialData;
 }
 
-export async function getUserById(userId: string): Promise<User | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (error) {
-        console.error(`Error fetching user ${userId}:`, error);
-        return null;
+function saveToStorage(users: User[]) {
+    if (typeof window !== 'undefined') {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(users));
     }
-    return data as User;
 }
 
-export async function addUser(userData: Partial<User>): Promise<User | null> {
-    const supabase = createClient();
-    
-    // 1. Create user in auth.users
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email!,
-        password: userData.password!,
-        options: {
-            data: {
-                name: userData.name,
-                role: userData.role,
-                photo_url: userData.photoUrl
-            }
-        }
-    });
+// --- Public API ---
 
-    if (authError || !authData.user) {
-        console.error("Error creating auth user:", authError?.message);
-        // Do not return here if the error is that the user already exists,
-        // which might happen if profile creation failed before.
-        if (authError && authError.message.includes('User already registered')) {
-            console.warn('Auth user already exists, proceeding to profile check.');
-        } else {
-            return null;
-        }
-    }
+// This function now acts as a client-side accessor.
+// For server-side operations, use Prisma directly.
+export function getUsers(): User[] {
+    return getFromStorage();
+}
 
-    const userId = authData.user?.id;
-    if (!userId) {
-        console.error("Could not get user ID after sign up.");
-        return null;
-    }
+export function getUserById(userId: string): User | undefined {
+    return getFromStorage().find(u => u.id === userId);
+}
 
-    // 2. Create profile in public.profiles
-    const profileData = {
-        id: userId,
-        username: userData.username,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        photoUrl: userData.photoUrl,
-        condominioId: userData.condominioId,
-        addressId: userData.addressId,
-        condominioIds: userData.condominioIds,
-        addressIds: userData.addressIds,
-        dailySalary: userData.dailySalary,
-        allowRemoteCheckIn: userData.allowRemoteCheckIn,
-        loanLimit: userData.loanLimit,
-        interestRate: userData.interestRate,
-        leaseStartDate: userData.leaseStartDate,
-        leaseEndDate: userData.leaseEndDate,
-        numberOfInhabitants: userData.numberOfInhabitants,
-        inhabitantNames: userData.inhabitantNames,
+export function addUser(userData: Partial<User>): User {
+    const allUsers = getFromStorage();
+    const newUser: User = {
+        id: `user-${Date.now()}`,
+        username: userData.username || '',
+        name: userData.name || '',
+        email: userData.email || '',
+        password: userData.password || 'password123',
+        role: userData.role || 'Propietario',
+        ...userData,
     };
-
-    // Use upsert to avoid errors if the profile already exists from a failed previous attempt
-    const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .upsert(profileData)
-        .select()
-        .single();
-        
-    if (profileError) {
-        console.error("Error creating/updating user profile:", profileError);
-        return null;
-    }
-
-    return profile as User;
+    const updatedUsers = [...allUsers, newUser];
+    saveToStorage(updatedUsers);
+    return newUser;
 }
 
-export async function updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', userId)
-        .select()
-        .single();
-
-    if (error) {
-        console.error(`Error updating user ${userId}:`, error);
-        return null;
+export function updateUser(userId: string, updates: Partial<User>): User | null {
+    const allUsers = getFromStorage();
+    const index = allUsers.findIndex(u => u.id === userId);
+    if (index > -1) {
+        allUsers[index] = { ...allUsers[index], ...updates };
+        saveToStorage(allUsers);
+        return allUsers[index];
     }
-    return data as User;
+    return null;
 }
 
-export async function deleteUser(userId: string): Promise<boolean> {
-    const supabase = createClient();
-    // This requires special permissions. For now, we will just delete the profile.
-    // In a real scenario, you'd call a server-side function to delete the auth user.
-    const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId);
-
-    if (profileError) {
-        console.error(`Error deleting user profile ${userId}:`, profileError);
-        return false;
+export function deleteUser(userId: string): boolean {
+    const allUsers = getFromStorage();
+    const newLength = allUsers.length;
+    const updatedUsers = allUsers.filter(u => u.id !== userId);
+    if (updatedUsers.length < newLength) {
+        saveToStorage(updatedUsers);
+        return true;
     }
-
-    // Placeholder for deleting the auth user
-    // const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-    // if (authError) { ... }
-    
-    return true;
+    return false;
 }

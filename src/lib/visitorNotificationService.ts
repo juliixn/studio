@@ -1,71 +1,73 @@
 
 "use client";
 
-import { createClient } from './supabase/client';
+import { mockVisitorNotifications as initialData } from './data';
 import type { VisitorNotification } from './definitions';
 
-export async function getVisitorNotifications(condominioId?: string, residentId?: string): Promise<VisitorNotification[]> {
-    const supabase = createClient();
-    let query = supabase.from('visitor_notifications').select('*');
+const STORAGE_KEY = 'visitorNotifications-v2';
 
+function getFromStorage(): VisitorNotification[] {
+    if (typeof window === 'undefined') return initialData;
+    try {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
+    } catch (error) {
+        console.error(`Error parsing sessionStorage key "${STORAGE_KEY}":`, error);
+    }
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+    return initialData;
+}
+
+function saveToStorage(notifications: VisitorNotification[]) {
+    if (typeof window !== 'undefined') {
+        const sorted = notifications.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+    }
+}
+
+export function getVisitorNotifications(condominioId?: string, residentId?: string): VisitorNotification[] {
+    let all = getFromStorage();
     if (condominioId) {
-        query = query.eq('condominioId', condominioId);
+        all = all.filter(n => n.condominioId === condominioId);
     }
     if (residentId) {
-        query = query.eq('residentId', residentId);
-    }
-
-    const { data, error } = await query.order('createdAt', { ascending: false });
-
-    if (error) {
-        console.error("Error fetching visitor notifications:", error);
-        return [];
+        all = all.filter(n => n.residentId === residentId);
     }
 
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     // Filter out expired notifications on the client side
-    return data.filter(n => {
+    return all.filter(n => {
         if (n.status === 'Activa') {
             const createdAt = new Date(n.createdAt);
             return createdAt > twentyFourHoursAgo;
         }
         return true;
-    }) as VisitorNotification[];
+    });
 }
 
-export async function addVisitorNotification(payload: Omit<VisitorNotification, 'id' | 'createdAt' | 'status'>): Promise<VisitorNotification | null> {
-    const supabase = createClient();
-    const newNotificationData = {
+export function addVisitorNotification(payload: Omit<VisitorNotification, 'id'|'createdAt'|'status'|'residentName'|'address'>): VisitorNotification {
+    const all = getFromStorage();
+    const newNotification = {
         ...payload,
-        status: 'Activa',
+        id: `vn-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        status: 'Activa' as const,
+        residentName: 'N/A', // These should be looked up if needed
+        address: 'N/A',
     };
-    const { data, error } = await supabase
-        .from('visitor_notifications')
-        .insert([newNotificationData])
-        .select()
-        .single();
-
-    if (error) {
-        console.error("Error adding visitor notification:", error);
-        return null;
-    }
-    return data as VisitorNotification;
+    saveToStorage([newNotification, ...all]);
+    return newNotification;
 }
 
-export async function updateVisitorNotification(notificationId: string, payload: Partial<VisitorNotification>): Promise<VisitorNotification | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('visitor_notifications')
-        .update(payload)
-        .eq('id', notificationId)
-        .select()
-        .single();
-    
-    if (error) {
-        console.error(`Error updating notification ${notificationId}:`, error);
-        return null;
+export function updateVisitorNotification(notificationId: string, payload: Partial<VisitorNotification>): VisitorNotification | null {
+    const all = getFromStorage();
+    const index = all.findIndex(n => n.id === notificationId);
+    if (index > -1) {
+        all[index] = { ...all[index], ...payload };
+        saveToStorage(all);
+        return all[index];
     }
-    return data as VisitorNotification;
+    return null;
 }

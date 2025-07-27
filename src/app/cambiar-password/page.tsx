@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
+
+// This is a placeholder page. In a real app with Prisma, you'd need a robust
+// password reset flow with secure tokens, which is beyond the scope of this
+// client-side simulation.
 
 export default function CambiarPasswordPage() {
   const router = useRouter();
@@ -18,31 +21,17 @@ export default function CambiarPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
-
-  // Listen for the password recovery event from Supabase
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        // This event fires when the user is redirected back from the password reset link
-        if (event === 'PASSWORD_RECOVERY') {
-            // The user is now in a special state to update their password.
-            // No need to do anything here, the form will handle the update.
-        }
-    });
-
-    return () => {
-        subscription?.unsubscribe();
-    };
-  }, [supabase]);
-
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+
     if (newPassword !== confirmPassword) {
       toast({
         title: "Las contraseñas no coinciden",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
     if (newPassword.length < 6) {
@@ -51,40 +40,22 @@ export default function CambiarPasswordPage() {
             description: "La contraseña debe tener al menos 6 caracteres.",
             variant: "destructive",
         });
+        setIsLoading(false);
         return;
     }
 
-    setIsLoading(true);
-
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-
-    if (error) {
-      toast({
-        title: "Error al cambiar la contraseña",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
+    // In a real app, you would have a token from the URL to verify the user
+    // and then make a server call to update the password in Prisma.
+    // For this simulation, we'll just show a success message and redirect.
     
-    // Also update the flag in the profiles table, just in case
-    const { data: { user } } = await supabase.auth.getUser();
-    if(user) {
-        await supabase
-          .from('profiles')
-          .update({ requires_password_change: false })
-          .eq('id', user.id);
-    }
-    
-    toast({
-        title: "Contraseña Actualizada",
-        description: "Tu contraseña ha sido cambiada exitosamente. Ahora puedes iniciar sesión.",
-    });
-
-    await supabase.auth.signOut();
-    router.push('/');
-    setIsLoading(false);
+    setTimeout(() => {
+        toast({
+            title: "Funcionalidad no implementada",
+            description: "La recuperación de contraseña requiere una configuración de servidor segura.",
+        });
+        router.push('/');
+        setIsLoading(false);
+    }, 1000);
   };
 
   return (

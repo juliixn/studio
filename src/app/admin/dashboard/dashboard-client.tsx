@@ -1,12 +1,17 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Car, FileText, HelpCircle, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from 'next/dynamic';
 import type { ActivityFeedItem } from '@/components/admin/activity-feed';
 import type { VehicularRegistration, PedestrianRegistration } from "@/lib/definitions";
+import { getVehicularRegistrations, getPedestrianRegistrations } from '@/lib/registrationService';
+import { getPackages } from '@/lib/packageService';
+import { getPeticiones } from '@/lib/peticionService';
+import { getBitacora } from '@/lib/bitacoraService';
 
 // Dynamic imports for components that need to run only on the client
 const AccesosChart = dynamic(() => import('@/components/admin/accesos-chart'), { 
@@ -31,11 +36,35 @@ interface DashboardData {
 }
 
 interface AdminDashboardClientProps {
-    initialData: DashboardData;
+    initialData: DashboardData; // Will be empty initially
 }
 
 export default function AdminDashboardClient({ initialData }: AdminDashboardClientProps) {
-    const { vehicular, pedestrian, packages, peticiones, bitacora } = initialData;
+    const [data, setData] = useState<DashboardData>(initialData);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchData() {
+            const [vehicularData, pedestrianData, packagesData, peticionesData, bitacoraData] = await Promise.all([
+                getVehicularRegistrations(),
+                getPedestrianRegistrations(),
+                getPackages(),
+                getPeticiones(),
+                getBitacora()
+            ]);
+            setData({
+                vehicular: vehicularData,
+                pedestrian: pedestrianData,
+                packages: packagesData,
+                peticiones: peticionesData,
+                bitacora: bitacoraData
+            });
+            setIsLoading(false);
+        }
+        fetchData();
+    }, []);
+    
+    const { vehicular, pedestrian, packages, peticiones, bitacora } = data;
 
     const activeVehicles = vehicular?.filter(v => !v.exitTimestamp) || [];
     const pendingPackages = packages?.filter(p => p.status !== 'Entregado') || [];
@@ -46,6 +75,10 @@ export default function AdminDashboardClient({ initialData }: AdminDashboardClie
       ...(pedestrian || []).map(p => ({ id: p.id, type: 'pedestrian' as const, date: p.entryTimestamp, text: `Entrada Peatonal: ${p.fullName}`, subtext: `Domicilio: ${p.address}` })),
       ...(bitacora || []).map(b => ({ id: b.id, type: 'bitacora' as const, date: b.createdAt, text: `Novedad: ${b.authorName}`, subtext: b.text.substring(0, 50) + '...' })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+
+    if (isLoading) {
+        return <Skeleton className="h-screen w-full" />;
+    }
 
     return (
         <div className="space-y-6">

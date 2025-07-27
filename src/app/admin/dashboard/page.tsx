@@ -1,40 +1,21 @@
 
-import { createClient } from "@/lib/supabase/server";
+import { getVehicularRegistrations, getPedestrianRegistrations } from "@/lib/registrationService";
+import { getPackages } from "@/lib/packageService";
+import { getPeticiones } from "@/lib/peticionService";
+import { getBitacora } from "@/lib/bitacoraService";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdminDashboardClient from "./dashboard-client";
 
 async function getDashboardData() {
-    const supabase = createClient();
-    
-    // Fetch all data in parallel
-    const [
-        vehicularResult,
-        pedestrianResult,
-        packagesResult,
-        peticionesResult,
-        bitacoraResult
-    ] = await Promise.all([
-        supabase.from('vehicular_registrations').select('*'),
-        supabase.from('pedestrian_registrations').select('*'),
-        supabase.from('packages').select('*'),
-        supabase.from('peticiones').select('*'),
-        supabase.from('bitacora_entries').select('*')
-    ]);
-
-    // Handle potential errors for each query
-    if (vehicularResult.error) console.error("Error fetching vehicular data:", vehicularResult.error);
-    if (pedestrianResult.error) console.error("Error fetching pedestrian data:", pedestrianResult.error);
-    if (packagesResult.error) console.error("Error fetching packages data:", packagesResult.error);
-    if (peticionesResult.error) console.error("Error fetching peticiones data:", peticionesResult.error);
-    if (bitacoraResult.error) console.error("Error fetching bitacora data:", bitacoraResult.error);
-
+    // Since we're using client-side storage, we can't fetch data on the server.
+    // We'll return empty arrays and let the client-side component fetch the data.
     return {
-        vehicular: vehicularResult.data || [],
-        pedestrian: pedestrianResult.data || [],
-        packages: packagesResult.data || [],
-        peticiones: peticionesResult.data || [],
-        bitacora: bitacoraResult.data || [],
+        vehicular: [],
+        pedestrian: [],
+        packages: [],
+        peticiones: [],
+        bitacora: [],
     };
 }
 
@@ -58,6 +39,7 @@ function DashboardSkeleton() {
 }
 
 export default async function AdminDashboardPage() {
+    // The initial data will be empty, client component will fetch.
     const dashboardData = await getDashboardData();
     
     return (

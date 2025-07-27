@@ -1,7 +1,17 @@
 
 'use client';
 
-import { createClient } from './supabase/client';
+import {
+  visitorTypes as initialVisitorTypes,
+  vehicleVisitorTypes as initialVehicleVisitorTypes,
+  vehicleTypes as initialVehicleTypes,
+  vehicleBrands as initialVehicleBrands,
+  vehicleColors as initialVehicleColors,
+  equipment as initialEquipment,
+  incidentCategories as initialIncidentCategories,
+  providerTypes as initialProviderTypes,
+  employeeTypes as initialEmployeeTypes
+} from './data';
 
 export const listKeys = [
     'visitorTypes', 
@@ -17,51 +27,44 @@ export const listKeys = [
 
 export type ListKey = typeof listKeys[number];
 
-type ListEntry = {
-    list_key: ListKey;
-    value: string;
-}
+const initialDataMap: Record<ListKey, string[]> = {
+    visitorTypes: initialVisitorTypes,
+    vehicleVisitorTypes: initialVehicleVisitorTypes,
+    vehicleTypes: initialVehicleTypes,
+    vehicleBrands: initialVehicleBrands,
+    vehicleColors: initialVehicleColors,
+    equipment: initialEquipment,
+    incidentCategories: initialIncidentCategories,
+    providerTypes: initialProviderTypes,
+    employeeTypes: initialEmployeeTypes,
+};
 
-export async function getList(key: ListKey): Promise<string[]> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('managed_lists')
-        .select('value')
-        .eq('list_key', key)
-        .order('value', { ascending: true });
-
-    if (error) {
-        console.error(`Error fetching list for key "${key}":`, error);
-        return [];
+function getFromStorage(key: ListKey): string[] {
+    if (typeof window === 'undefined') {
+        return initialDataMap[key];
     }
-
-    return data.map(item => item.value);
-}
-
-export async function addToList(key: ListKey, value: string): Promise<boolean> {
-    const supabase = createClient();
-    const { error } = await supabase.from('managed_lists').insert([{ list_key: key, value }]);
-    
-    if (error) {
-        // Code '23505' is for unique violation, which is okay, it means the item exists.
-        if (error.code !== '23505') {
-            console.error(`Error adding to list "${key}":`, error);
-            return false;
+    try {
+        const storedData = localStorage.getItem(`list-${key}`);
+        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
+            return JSON.parse(storedData);
         }
+    } catch (error) {
+        console.error(`Failed to parse from localStorage key "list-${key}", re-initializing.`, error);
     }
-    return true;
+    localStorage.setItem(`list-${key}`, JSON.stringify(initialDataMap[key]));
+    return initialDataMap[key];
 }
 
-export async function removeFromList(key: ListKey, value: string): Promise<boolean> {
-    const supabase = createClient();
-    const { error } = await supabase
-        .from('managed_lists')
-        .delete()
-        .match({ list_key: key, value: value });
-    
-    if (error) {
-        console.error(`Error removing from list "${key}":`, error);
-        return false;
+function saveToStorage(key: ListKey, data: string[]) {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(`list-${key}`, JSON.stringify(data.sort()));
     }
-    return true;
+}
+
+export function getList(key: ListKey): string[] {
+    return getFromStorage(key);
+}
+
+export function updateList(key: ListKey, newList: string[]): void {
+    saveToStorage(key, newList);
 }

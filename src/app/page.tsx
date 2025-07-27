@@ -10,36 +10,28 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
+import { login } from '@/lib/authService';
 
 function ForgotPasswordForm({ onBackToLogin }: { onBackToLogin: () => void }) {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/cambiar-password`,
-    });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Correo de Recuperación Enviado",
-        description: "Revisa tu bandeja de entrada para restablecer tu contraseña.",
-      });
-      onBackToLogin();
-    }
-    setIsLoading(false);
+    // This functionality requires a backend with email sending capabilities.
+    // We'll simulate the call and show an informational toast.
+    setTimeout(() => {
+        toast({
+            title: "Función no disponible",
+            description: "La recuperación de contraseña debe ser configurada en un servidor. Contacta a un administrador.",
+            variant: "warning",
+            duration: 7000,
+        });
+        setIsLoading(false);
+    }, 1000);
   };
 
   return (
@@ -73,54 +65,46 @@ function LoginForm({ onForgotPasswordClick }: { onForgotPasswordClick: () => voi
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
+    const result = await login(email, password);
     
-    if (error || !data.user) {
+    if (!result.success || !result.user) {
       toast({
         title: "Error de inicio de sesión",
-        description: "Credenciales de inicio de sesión inválidas.",
+        description: result.message,
         variant: "destructive",
       });
       setIsLoading(false);
       return;
     }
     
-    // Fetch profile to get role and other details
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
-
-    if (profileError || !profile) {
-      toast({
-        title: "Error de perfil",
-        description: "No se pudo cargar tu perfil. Contacta a soporte.",
-        variant: "destructive",
-      });
-      await supabase.auth.signOut();
-      setIsLoading(false);
-      return;
-    }
-
     // Store user profile in sessionStorage
-    sessionStorage.setItem('loggedInUser', JSON.stringify(profile));
+    sessionStorage.setItem('loggedInUser', JSON.stringify(result.user));
     
     toast({
       title: "Inicio de Sesión Exitoso",
       description: "Redirigiendo a tu panel...",
     });
 
-    router.refresh();
+    switch (result.user.role) {
+        case 'Administrador':
+        case 'Adm. Condo':
+            router.push('/admin');
+            break;
+        case 'Guardia':
+            router.push('/guardia');
+            break;
+        case 'Propietario':
+        case 'Renta':
+            router.push('/dashboard');
+            break;
+        default:
+            router.push('/');
+    }
   };
 
   return (

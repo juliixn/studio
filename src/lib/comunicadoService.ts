@@ -1,38 +1,48 @@
 
 "use client";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { Comunicado } from './definitions';
 
-export async function getComunicados(condominioId?: string): Promise<Comunicado[]> {
-    const supabase = createClient();
-    let query = supabase.from('comunicados').select('*');
+// For now, using mock data until a proper solution for server/client data fetching is established.
+import { mockComunicados } from './data';
 
-    if (condominioId) {
-        // Return announcements for the specific condo OR announcements for 'all'
-        query = query.or(`target.eq.all,target.eq.${condominioId}`);
-    }
-    
-    const { data, error } = await query.order('createdAt', { ascending: false });
+const STORAGE_KEY = 'comunicados-v1';
 
-    if (error) {
-        console.error("Error fetching comunicados:", error);
-        return [];
+function getFromStorage(): Comunicado[] {
+    if (typeof window === 'undefined') return mockComunicados;
+    try {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
+    } catch (error) {
+        console.error(`Error parsing sessionStorage key "${STORAGE_KEY}":`, error);
     }
-    return data as Comunicado[];
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(mockComunicados));
+    return mockComunicados;
 }
 
-export async function addComunicado(payload: Omit<Comunicado, 'id' | 'createdAt'>): Promise<Comunicado | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('comunicados')
-        .insert([{ ...payload }])
-        .select()
-        .single();
-    
-    if (error) {
-        console.error("Error adding comunicado:", error);
-        return null;
+function saveToStorage(comunicados: Comunicado[]) {
+    if (typeof window !== 'undefined') {
+        const sorted = comunicados.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
     }
-    return data as Comunicado;
+}
+
+
+export function getComunicados(condominioId?: string): Comunicado[] {
+    const comunicados = getFromStorage();
+    if (!condominioId) return comunicados;
+    return comunicados.filter(c => c.target === 'all' || c.target === condominioId);
+}
+
+export function addComunicado(payload: Omit<Comunicado, 'id' | 'createdAt'>): Comunicado {
+    const comunicados = getFromStorage();
+    const newComunicado: Comunicado = {
+        ...payload,
+        id: `com-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+    };
+    const updated = [newComunicado, ...comunicados];
+    saveToStorage(updated);
+    return newComunicado;
 }

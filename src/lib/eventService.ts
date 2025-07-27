@@ -1,52 +1,62 @@
 
 "use client";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { CommunityEvent } from './definitions';
+import { mockEvents } from './data';
 
-export async function getEvents(condominioId?: string): Promise<CommunityEvent[]> {
-    const supabase = createClient();
-    let query = supabase.from('events').select('*');
+const STORAGE_KEY = 'events-v1';
 
+function getFromStorage(): CommunityEvent[] {
+    if (typeof window === 'undefined') return mockEvents;
+    try {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
+    } catch (error) {
+        console.error(`Error parsing sessionStorage key "${STORAGE_KEY}":`, error);
+    }
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(mockEvents));
+    return mockEvents;
+}
+
+function saveToStorage(events: CommunityEvent[]) {
+    if (typeof window !== 'undefined') {
+        const sorted = events.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+    }
+}
+
+
+export function getEvents(condominioId?: string): CommunityEvent[] {
+    let events = getFromStorage();
     if (condominioId) {
-        query = query.or(`condominioId.eq.all,condominioId.eq.${condominioId}`);
+        events = events.filter(e => e.condominioId === 'all' || e.condominioId === condominioId);
     }
-    
-    const { data, error } = await query.order('start', { ascending: true });
-
-    if (error) {
-        console.error("Error fetching events:", error);
-        return [];
-    }
-    return data as CommunityEvent[];
+    return events;
 }
 
-export async function addEvent(event: Omit<CommunityEvent, 'id'>): Promise<CommunityEvent | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('events').insert([event]).select().single();
-    if (error) {
-        console.error("Error adding event:", error);
-        return null;
-    }
-    return data as CommunityEvent;
+export function addEvent(event: Omit<CommunityEvent, 'id'>): CommunityEvent {
+    const events = getFromStorage();
+    const newEvent: CommunityEvent = { ...event, id: `evt-${Date.now()}` };
+    saveToStorage([...events, newEvent]);
+    return newEvent;
 }
 
-export async function updateEvent(eventId: string, updates: Partial<Omit<CommunityEvent, 'id'>>): Promise<CommunityEvent | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('events').update(updates).eq('id', eventId).select().single();
-    if (error) {
-        console.error(`Error updating event ${eventId}:`, error);
-        return null;
+export function updateEvent(eventId: string, updates: Partial<Omit<CommunityEvent, 'id'>>): CommunityEvent | null {
+    const events = getFromStorage();
+    const index = events.findIndex(e => e.id === eventId);
+    if (index !== -1) {
+        events[index] = { ...events[index], ...updates };
+        saveToStorage(events);
+        return events[index];
     }
-    return data as CommunityEvent;
+    return null;
 }
 
-export async function deleteEvent(eventId: string): Promise<boolean> {
-    const supabase = createClient();
-    const { error } = await supabase.from('events').delete().eq('id', eventId);
-    if (error) {
-        console.error(`Error deleting event ${eventId}:`, error);
-        return false;
-    }
+export function deleteEvent(eventId: string): boolean {
+    const events = getFromStorage();
+    const newEvents = events.filter(e => e.id !== eventId);
+    if (events.length === newEvents.length) return false;
+    saveToStorage(newEvents);
     return true;
 }

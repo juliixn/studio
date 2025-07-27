@@ -1,10 +1,23 @@
+
 import { NextResponse, type NextRequest } from 'next/server'
 import type { UserRole } from '@/lib/definitions';
-import { updateSession } from '@/lib/supabase/middleware';
-import { createClient } from '@/lib/supabase/server';
+import { getUserFromSession } from '@/lib/authService';
 
 export async function middleware(request: NextRequest) {
-  const { response, user } = await updateSession(request);
+  // Since we are using a mock service with client-side storage,
+  // the server-side middleware can't access the session directly.
+  // We'll rely on the client-side redirects inside the layouts.
+  // This middleware will handle basic route protection for unauthenticated users.
+  
+  const sessionCookie = request.cookies.get('loggedInUser');
+  let user = null;
+  if(sessionCookie) {
+    try {
+      user = JSON.parse(sessionCookie.value);
+    } catch(e) {
+      console.error('Failed to parse user cookie');
+    }
+  }
 
   const { pathname } = request.nextUrl
 
@@ -13,33 +26,21 @@ export async function middleware(request: NextRequest) {
     '/admin': ['Administrador', 'Adm. Condo'],
     '/dashboard': ['Propietario', 'Renta'],
     '/guardia': ['Guardia'],
-    // '/cambiar-password': ['Administrador', 'Adm. Condo', 'Propietario', 'Renta', 'Guardia']
+    '/cambiar-password': ['Administrador', 'Adm. Condo', 'Propietario', 'Renta', 'Guardia']
   };
 
   const authRoutes = ['/'];
-  const publicRoutes = ['/suspendido', '/cambiar-password'];
+  const publicRoutes = ['/suspendido'];
 
   // 1. Allow access to public routes
-  if (publicRoutes.some(path => pathname.startsWith(path))) {
-    return response;
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
   }
   
   // 2. Handle authenticated users
   if (user) {
-    const supabase = createClient();
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, condominioIds')
-        .eq('id', user.id)
-        .single();
+    const userRole = user.role as UserRole;
     
-    const userRole = profile?.role as UserRole;
-
-    // Redirect Adm. Condo with multiple condos to selection page
-    if (userRole === 'Adm. Condo' && (profile?.condominioIds?.length || 0) > 1 && pathname !== '/admin/seleccionar-condominio') {
-      return NextResponse.redirect(new URL('/admin/seleccionar-condominio', request.url));
-    }
-
     // If user is authenticated and tries to access login page, redirect them to their dashboard
     if (authRoutes.includes(pathname)) {
         let redirectPath = '/'; // Fallback
@@ -68,10 +69,9 @@ export async function middleware(request: NextRequest) {
             // Log out user if they try to access a page they don't have permission for
              const redirectUrl = new URL('/', request.url);
              redirectUrl.searchParams.set('error', 'unauthorized');
-             const logoutResponse = NextResponse.redirect(redirectUrl);
-             // Clear Supabase session
-             logoutResponse.cookies.delete(`sb-${process.env.NEXT_PUBLIC_SUPABASE_URL!.split('.')[0]}-auth-token`);
-             return logoutResponse;
+             const response = NextResponse.redirect(redirectUrl);
+             response.cookies.delete('loggedInUser');
+             return response;
         }
     }
   } else {
@@ -83,7 +83,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

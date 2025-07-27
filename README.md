@@ -1,6 +1,6 @@
 # Firebase Studio
 
-This is a NextJS starter in Firebase Studio.
+This is a NextJS starter in Firebase Studio. This project uses **Prisma** as its database ORM.
 
 To get started, take a look at src/app/page.tsx.
 

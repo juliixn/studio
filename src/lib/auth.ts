@@ -1,24 +1,14 @@
-import { createClient } from './supabase/server';
+
+'use server';
+
+import { getUserFromSession as getMockUser, clearUserSession } from './authService';
 import type { User } from './definitions';
 
 export async function getUserFromSession(): Promise<User | null> {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getMockUser();
+    return user;
+}
 
-    if (!user) {
-        return null;
-    }
-
-    const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-    if (error) {
-        console.error("Error fetching user profile:", error);
-        return null;
-    }
-    
-    return profile as User;
+export async function logout() {
+    await clearUserSession();
 }

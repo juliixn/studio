@@ -1,30 +1,35 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import Image from 'next/image';
+
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import GuardClientLayout from './guard-client-layout';
 import type { User } from '@/lib/definitions';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function GuardiaLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
+export default function GuardiaLayout({ children }: { children: React.ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
-  const { data: { user } } = await supabase.auth.getUser();
+    useEffect(() => {
+        const storedUser = sessionStorage.getItem('loggedInUser');
+        if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.role !== 'Guardia') {
+                router.replace('/');
+            } else {
+                setUser(parsedUser);
+            }
+        } else {
+            router.replace('/');
+        }
+        setLoading(false);
+    }, [router]);
 
-  if (!user) {
-    return redirect('/');
-  }
+    if (loading || !user) {
+        return <div className="flex h-screen items-center justify-center"><Skeleton className="h-full w-full" /></div>
+    }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile) {
-    // This case might happen if profile creation failed.
-    // Log out the user to let them try again.
-    await supabase.auth.signOut();
-    return redirect('/');
-  }
-
-  return <GuardClientLayout user={profile as User}>{children}</GuardClientLayout>;
+    return <GuardClientLayout user={user}>{children}</GuardClientLayout>;
 }

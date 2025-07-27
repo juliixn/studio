@@ -1,62 +1,64 @@
 
 "use client";
 
-import { createClient } from './supabase/client';
+import { mockShiftRecords as initialData } from './data';
 import type { ShiftRecord, TurnoInfo, ShiftIncidentType } from './definitions';
 
-export async function getShiftRecords(guardId?: string): Promise<ShiftRecord[]> {
-    const supabase = createClient();
-    let query = supabase.from('shift_records').select('*');
+const STORAGE_KEY = 'shiftRecords-v4';
+
+function getFromStorage(): ShiftRecord[] {
+    if (typeof window === 'undefined') {
+        return initialData;
+    }
+    try {
+        const storedData = sessionStorage.getItem(STORAGE_KEY);
+        // Robust check for stored data
+        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
+            return JSON.parse(storedData);
+        }
+    } catch (error) {
+        console.error(`Failed to parse from sessionStorage key "${STORAGE_KEY}", re-initializing.`, error);
+    }
+    // If no valid data, initialize with mock data
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+    return initialData;
+}
+
+function saveToStorage(records: ShiftRecord[]) {
+    if (typeof window !== 'undefined') {
+        const sorted = records.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+    }
+}
+
+export function getShiftRecords(guardId?: string): ShiftRecord[] {
+    let allRecords = getFromStorage();
     if (guardId) {
-        query = query.eq('guardId', guardId);
+        allRecords = allRecords.filter(r => r.guardId === guardId);
     }
-    const { data, error } = await query.order('startTime', { ascending: false });
-
-    if (error) {
-        console.error("Error fetching shift records:", error);
-        return [];
-    }
-    return data as ShiftRecord[];
+    return allRecords;
 }
 
-
-export async function getActiveShiftForGuard(guardId: string): Promise<ShiftRecord | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('shift_records')
-        .select('*')
-        .eq('guardId', guardId)
-        .is('endTime', null)
-        .order('startTime', { ascending: false })
-        .limit(1)
-        .single();
-    
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "No rows found"
-        console.error("Error fetching active shift:", error);
-    }
-    
-    return data as ShiftRecord | null;
+export function getActiveShiftForGuard(guardId: string): ShiftRecord | null {
+    const allRecords = getFromStorage();
+    const activeShift = allRecords.find(r => r.guardId === guardId && !r.endTime);
+    return activeShift || null;
 }
 
-export async function getActiveShifts(condominioId?: string): Promise<ShiftRecord[]> {
-    const supabase = createClient();
-    let query = supabase.from('shift_records').select('*').is('endTime', null);
+export function getActiveShifts(condominioId?: string): ShiftRecord[] {
+    const allRecords = getFromStorage();
+    let activeShifts = allRecords.filter(r => !r.endTime);
     if(condominioId) {
-        query = query.eq('condominioId', condominioId);
+        activeShifts = activeShifts.filter(s => s.condominioId === condominioId);
     }
-
-    const { data, error } = await query;
-     if (error) {
-        console.error("Error fetching active shifts:", error);
-        return [];
-    }
-    return data as ShiftRecord[];
+    return activeShifts;
 }
 
 
-export async function startShift(guardId: string, guardName: string, turnoInfo: TurnoInfo): Promise<ShiftRecord | null> {
-    const supabase = createClient();
-    const newRecord = {
+export function startShift(guardId: string, guardName: string, turnoInfo: TurnoInfo): ShiftRecord {
+    const allRecords = getFromStorage();
+    const newRecord: ShiftRecord = {
+        id: `shift-${Date.now()}`,
         guardId,
         guardName,
         condominioId: turnoInfo.condominioId,
@@ -65,50 +67,32 @@ export async function startShift(guardId: string, guardName: string, turnoInfo: 
         startTime: new Date().toISOString(),
         equipmentIds: turnoInfo.equipmentIds,
     };
-    
-    const { data, error } = await supabase.from('shift_records').insert([newRecord]).select().single();
-    if (error) {
-        console.error("Error starting shift:", error);
-        return null;
-    }
-    return data as ShiftRecord;
+    const updatedRecords = [newRecord, ...allRecords];
+    saveToStorage(updatedRecords);
+    return newRecord;
 }
 
-export async function endShift(shiftId: string, handoverNotes?: string): Promise<ShiftRecord | null> {
-    const supabase = createClient();
-    const updates: Partial<ShiftRecord> = {
-        endTime: new Date().toISOString()
-    };
-    if (handoverNotes && handoverNotes.trim()) {
-        updates.handoverNotes = handoverNotes;
+export function endShift(shiftId: string, handoverNotes?: string): ShiftRecord | null {
+    const allRecords = getFromStorage();
+    const index = allRecords.findIndex(r => r.id === shiftId);
+    if (index !== -1) {
+        allRecords[index].endTime = new Date().toISOString();
+        if (handoverNotes && handoverNotes.trim()) {
+            allRecords[index].handoverNotes = handoverNotes;
+        }
+        saveToStorage(allRecords);
+        return allRecords[index];
     }
-
-    const { data, error } = await supabase
-        .from('shift_records')
-        .update(updates)
-        .eq('id', shiftId)
-        .select()
-        .single();
-
-    if (error) {
-        console.error(`Error ending shift ${shiftId}:`, error);
-        return null;
-    }
-    return data as ShiftRecord;
+    return null;
 }
 
-export async function updateShiftIncident(shiftId: string, incident: ShiftIncidentType | null): Promise<ShiftRecord | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('shift_records')
-        .update({ incident })
-        .eq('id', shiftId)
-        .select()
-        .single();
-    
-    if (error) {
-        console.error(`Error updating incident for shift ${shiftId}:`, error);
-        return null;
+export function updateShiftIncident(shiftId: string, incident: ShiftIncidentType | null): ShiftRecord | null {
+    const allRecords = getFromStorage();
+    const index = allRecords.findIndex(r => r.id === shiftId);
+    if (index !== -1) {
+        allRecords[index].incident = incident;
+        saveToStorage(allRecords);
+        return allRecords[index];
     }
-    return data as ShiftRecord;
+    return null;
 }

@@ -1,102 +1,90 @@
 
 "use client";
 
-import { createClient } from './supabase/client';
+import { mockVehicularRegistrations as initialVehicular, mockPedestrianRegistrations as initialPedestrian } from './data';
 import type { VehicularRegistration, PedestrianRegistration } from './definitions';
 
+const VEHICULAR_KEY = 'vehicularRegistrations-v4';
+const PEDESTRIAN_KEY = 'pedestrianRegistrations-v4';
+
 // --- Vehicular Registrations ---
-
-export async function getVehicularRegistrations(condominioId?: string): Promise<VehicularRegistration[]> {
-    const supabase = createClient();
-    let query = supabase.from('vehicular_registrations').select('*');
-    if (condominioId) {
-        query = query.eq('condominioId', condominioId);
-    }
-    const { data, error } = await query.order('entryTimestamp', { ascending: false });
-
-    if (error) {
-        console.error("Error fetching vehicular registrations:", error);
-        return [];
-    }
-    return data as VehicularRegistration[];
+function getVehicularFromStorage(): VehicularRegistration[] {
+    if (typeof window === 'undefined') return initialVehicular;
+    try {
+        const stored = sessionStorage.getItem(VEHICULAR_KEY);
+        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
+    } catch (error) { console.error(`Error parsing sessionStorage key "${VEHICULAR_KEY}":`, error); }
+    sessionStorage.setItem(VEHICULAR_KEY, JSON.stringify(initialVehicular));
+    return initialVehicular;
 }
 
-export async function addVehicularRegistration(registrationData: Omit<VehicularRegistration, 'id' | 'entryTimestamp'>): Promise<VehicularRegistration | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('vehicular_registrations')
-        .insert([{ ...registrationData, entryTimestamp: new Date().toISOString() }])
-        .select()
-        .single();
-    
-    if (error) {
-        console.error("Error adding vehicular registration:", error);
-        return null;
+function saveVehicularToStorage(registrations: VehicularRegistration[]) {
+    if (typeof window !== 'undefined') {
+        const sorted = registrations.sort((a,b) => new Date(b.entryTimestamp).getTime() - new Date(a.entryTimestamp).getTime());
+        sessionStorage.setItem(VEHICULAR_KEY, JSON.stringify(sorted));
     }
-    return data as VehicularRegistration;
 }
 
-export async function updateVehicularExit(registrationId: string): Promise<VehicularRegistration | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('vehicular_registrations')
-        .update({ exitTimestamp: new Date().toISOString() })
-        .eq('id', registrationId)
-        .select()
-        .single();
-
-    if (error) {
-        console.error("Error updating vehicular exit:", error);
-        return null;
-    }
-    return data as VehicularRegistration;
+export function getVehicularRegistrations(condominioId?: string): VehicularRegistration[] {
+    let all = getVehicularFromStorage();
+    return condominioId ? all.filter(r => r.condominioId === condominioId) : all;
 }
 
+export function addVehicularRegistration(reg: Omit<VehicularRegistration, 'id' | 'entryTimestamp'>): VehicularRegistration {
+    const all = getVehicularFromStorage();
+    const newReg = { ...reg, id: `vr-${Date.now()}`, entryTimestamp: new Date().toISOString() };
+    saveVehicularToStorage([newReg, ...all]);
+    return newReg;
+}
+
+export function updateVehicularExit(id: string): VehicularRegistration | null {
+    const all = getVehicularFromStorage();
+    const index = all.findIndex(r => r.id === id);
+    if (index > -1) {
+        all[index].exitTimestamp = new Date().toISOString();
+        saveVehicularToStorage(all);
+        return all[index];
+    }
+    return null;
+}
 
 // --- Pedestrian Registrations ---
-
-export async function getPedestrianRegistrations(condominioId?: string): Promise<PedestrianRegistration[]> {
-    const supabase = createClient();
-    let query = supabase.from('pedestrian_registrations').select('*');
-    if (condominioId) {
-        query = query.eq('condominioId', condominioId);
-    }
-    const { data, error } = await query.order('entryTimestamp', { ascending: false });
-
-    if (error) {
-        console.error("Error fetching pedestrian registrations:", error);
-        return [];
-    }
-    return data as PedestrianRegistration[];
+function getPedestrianFromStorage(): PedestrianRegistration[] {
+    if (typeof window === 'undefined') return initialPedestrian;
+    try {
+        const stored = sessionStorage.getItem(PEDESTRIAN_KEY);
+        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
+    } catch (error) { console.error(`Error parsing sessionStorage key "${PEDESTRIAN_KEY}":`, error); }
+    sessionStorage.setItem(PEDESTRIAN_KEY, JSON.stringify(initialPedestrian));
+    return initialPedestrian;
 }
 
-export async function addPedestrianRegistration(registrationData: Omit<PedestrianRegistration, 'id' | 'entryTimestamp'>): Promise<PedestrianRegistration | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('pedestrian_registrations')
-        .insert([{ ...registrationData, entryTimestamp: new Date().toISOString() }])
-        .select()
-        .single();
-    
-    if (error) {
-        console.error("Error adding pedestrian registration:", error);
-        return null;
+function savePedestrianToStorage(registrations: PedestrianRegistration[]) {
+     if (typeof window !== 'undefined') {
+        const sorted = registrations.sort((a,b) => new Date(b.entryTimestamp).getTime() - new Date(a.entryTimestamp).getTime());
+        sessionStorage.setItem(PEDESTRIAN_KEY, JSON.stringify(sorted));
     }
-    return data as PedestrianRegistration;
 }
 
-export async function updatePedestrianExit(registrationId: string): Promise<PedestrianRegistration | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('pedestrian_registrations')
-        .update({ exitTimestamp: new Date().toISOString() })
-        .eq('id', registrationId)
-        .select()
-        .single();
-        
-    if (error) {
-        console.error("Error updating pedestrian exit:", error);
-        return null;
+export function getPedestrianRegistrations(condominioId?: string): PedestrianRegistration[] {
+    let all = getPedestrianFromStorage();
+    return condominioId ? all.filter(r => r.condominioId === condominioId) : all;
+}
+
+export function addPedestrianRegistration(reg: Omit<PedestrianRegistration, 'id' | 'entryTimestamp'>): PedestrianRegistration {
+    const all = getPedestrianFromStorage();
+    const newReg = { ...reg, id: `pr-${Date.now()}`, entryTimestamp: new Date().toISOString() };
+    savePedestrianToStorage([newReg, ...all]);
+    return newReg;
+}
+
+export function updatePedestrianExit(id: string): PedestrianRegistration | null {
+    const all = getPedestrianFromStorage();
+    const index = all.findIndex(r => r.id === id);
+    if (index > -1) {
+        all[index].exitTimestamp = new Date().toISOString();
+        savePedestrianToStorage(all);
+        return all[index];
     }
-    return data as PedestrianRegistration;
+    return null;
 }
