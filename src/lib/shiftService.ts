@@ -14,7 +14,11 @@ export async function getShiftRecords(guardId?: string): Promise<ShiftRecord[]> 
             where: whereClause,
             orderBy: { startTime: 'desc' },
         });
-        return JSON.parse(JSON.stringify(records));
+        const processedRecords = records.map(record => ({
+            ...record,
+            equipmentIds: record.equipmentIds ? record.equipmentIds.split(',') : [],
+        }));
+        return JSON.parse(JSON.stringify(processedRecords));
     } catch (error) {
         console.error("Error fetching shift records:", error);
         return [];
@@ -29,7 +33,13 @@ export async function getActiveShiftForGuard(guardId: string): Promise<ShiftReco
                 endTime: null,
             },
         });
-        return activeShift ? JSON.parse(JSON.stringify(activeShift)) : null;
+        if (!activeShift) return null;
+        
+        const processedShift = {
+            ...activeShift,
+            equipmentIds: activeShift.equipmentIds ? activeShift.equipmentIds.split(',') : [],
+        };
+        return activeShift ? JSON.parse(JSON.stringify(processedShift)) : null;
     } catch (error) {
         console.error(`Error fetching active shift for guard ${guardId}:`, error);
         return null;
@@ -45,7 +55,11 @@ export async function getActiveShifts(condominioId?: string): Promise<ShiftRecor
         const activeShifts = await prisma.shiftRecord.findMany({
             where: whereClause,
         });
-        return JSON.parse(JSON.stringify(activeShifts));
+        const processedShifts = activeShifts.map(shift => ({
+            ...shift,
+            equipmentIds: shift.equipmentIds ? shift.equipmentIds.split(',') : [],
+        }));
+        return JSON.parse(JSON.stringify(processedShifts));
     } catch (error) {
         console.error("Error fetching active shifts:", error);
         return [];
@@ -54,16 +68,17 @@ export async function getActiveShifts(condominioId?: string): Promise<ShiftRecor
 
 export async function startShift(guardId: string, guardName: string, turnoInfo: TurnoInfo): Promise<ShiftRecord | null> {
     try {
+        const dataToSave: any = {
+            guardId,
+            guardName,
+            condominioId: turnoInfo.condominioId,
+            condominioName: turnoInfo.condominioName,
+            turno: turnoInfo.turno,
+            equipmentIds: turnoInfo.equipmentIds ? turnoInfo.equipmentIds : undefined,
+            startTime: new Date(),
+        }
         const newRecord = await prisma.shiftRecord.create({
-            data: {
-                guardId,
-                guardName,
-                condominioId: turnoInfo.condominioId,
-                condominioName: turnoInfo.condominioName,
-                turno: turnoInfo.turno,
-                equipmentIds: turnoInfo.equipmentIds,
-                startTime: new Date(),
-            },
+            data: dataToSave,
         });
         return JSON.parse(JSON.stringify(newRecord));
     } catch (error) {

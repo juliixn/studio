@@ -34,7 +34,7 @@ export interface User {
     leaseStartDate?: string;
     leaseEndDate?: string;
     numberOfInhabitants?: number;
-    inhabitantNames?: string[];
+    inhabitantNames?: string; // Stored as comma-separated string
 }
 
 export type GuardMenuSection = 'vehicular' | 'pedestrian' | 'packages' | 'bitacora' | 'peticiones' | 'my_payroll' | 'my_loans' | 'active_exits' | 'reservations' | 'notifications';
@@ -50,7 +50,7 @@ export interface Condominio {
     geofenceRadius?: number;
     guardsRequiredDiurno?: number;
     guardsRequiredNocturno?: number;
-    guardMenuSections?: GuardMenuSection[];
+    guardMenuSections?: string; // Stored as comma-separated string
 }
 
 export interface Address {
@@ -94,7 +94,7 @@ export interface TurnoInfo {
     turno: 'Diurno' | 'Nocturno' | 'Apoyo';
     condominioId: string;
     condominioName: string;
-    equipmentIds?: string[];
+    equipmentIds?: string; // Stored as comma-separated string
 }
 
 export interface PeticionComment {
@@ -135,7 +135,7 @@ export interface BitacoraEntry {
     type: BitacoraEntryType;
     text: string;
     relatedId?: string;
-    photos?: string[];
+    photos?: string; // Stored as comma-separated string
     category?: string;
     latitude?: number;
     longitude?: number;
@@ -287,7 +287,7 @@ export interface ShiftRecord {
     turno: 'Diurno' | 'Nocturno' | 'Apoyo';
     startTime: string;
     endTime?: string;
-    equipmentIds?: string[];
+    equipmentIds?: string; // Stored as comma-separated string
     handoverNotes?: string;
     incident?: ShiftIncidentType | null;
 }
@@ -429,11 +429,7 @@ export interface Loan {
     status: LoanStatus;
     requestedAt: string;
     approvedAt?: string;
-    payments: {
-        payrollId: string; // The ID of the ArchivedPayroll
-        amount: number;
-        date: string;
-    }[];
+    payments: string; // Stored as JSON string
 }
 
 export interface Comunicado {
@@ -442,7 +438,7 @@ export interface Comunicado {
   message: string;
   target: 'all' | string; // 'all' or a condominioId
   targetName: string;
-  channels: ('Push' | 'Email')[];
+  channels: string; // Stored as comma-separated string
   createdAt: string;
 }
 
@@ -495,7 +491,7 @@ export interface Survey {
     title: string;
     description: string;
     condominioId: 'all' | string;
-    options: SurveyOption[];
+    options: string; // Stored as JSON string
     createdAt: string;
     closesAt: string;
     status: 'Abierta' | 'Cerrada';
@@ -527,8 +523,8 @@ export interface DirectMessage extends ChatMessage {
 
 export interface Conversation {
     id: string;
-    participantIds: string[];
-    participantNames: string[];
+    participantIds: string; // Stored as comma-separated string
+    participantNames: string; // Stored as comma-separated string
     messages: DirectMessage[];
     lastMessageAt: string;
 }

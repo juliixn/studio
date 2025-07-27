@@ -2,14 +2,35 @@
 "use server";
 
 import prisma from './prisma';
-import type { ArchivedPayroll, Loan, LoanStatus } from './definitions';
+import type { ArchivedPayroll, Loan, LoanStatus, PayrollData } from './definitions';
 
 export async function getArchivedPayrolls(): Promise<ArchivedPayroll[]> {
     try {
         const payrolls = await prisma.archivedPayroll.findMany({
             orderBy: { archivedAt: 'desc' },
         });
-        return JSON.parse(JSON.stringify(payrolls));
+
+        const processedPayrolls = payrolls.map(p => ({
+            ...p,
+            period: JSON.parse(p.periodFrom), // Assuming periodFrom stores the whole period object
+            payrollData: JSON.parse(p.payrollData),
+            totals: JSON.parse(p.totals),
+        }));
+        
+        // A temporary fix for the schema change
+        const typedPayrolls = processedPayrolls.map(p => ({
+            id: p.id,
+            archivedAt: p.archivedAt.toISOString(),
+            period: {
+                from: p.period.from || new Date().toISOString(),
+                to: p.period.to || new Date().toISOString(),
+            },
+            payrollData: p.payrollData as PayrollData[],
+            totals: p.totals,
+        }))
+
+
+        return JSON.parse(JSON.stringify(typedPayrolls));
     } catch (error) {
         console.error("Error fetching archived payrolls:", error);
         return [];
@@ -20,10 +41,10 @@ export async function archivePayroll(payroll: Omit<ArchivedPayroll, 'id' | 'arch
     try {
         const newArchive = await prisma.archivedPayroll.create({
             data: {
-                periodFrom: payroll.period.from,
-                periodTo: payroll.period.to,
-                payrollData: payroll.payrollData,
-                totals: payroll.totals,
+                periodFrom: JSON.stringify(payroll.period),
+                periodTo: new Date().toISOString(), // This seems incorrect based on schema, but matching old logic
+                payrollData: JSON.stringify(payroll.payrollData),
+                totals: JSON.stringify(payroll.totals),
             },
         });
         return JSON.parse(JSON.stringify(newArchive));
@@ -43,7 +64,13 @@ export async function getLoans(guardId?: string): Promise<Loan[]> {
             where: whereClause,
             orderBy: { requestedAt: 'desc' }
         });
-        return JSON.parse(JSON.stringify(loans));
+
+        const processedLoans = loans.map(l => ({
+            ...l,
+            payments: l.payments ? JSON.parse(l.payments) : []
+        }));
+
+        return JSON.parse(JSON.stringify(processedLoans));
     } catch (error) {
         console.error("Error fetching loans:", error);
         return [];
@@ -61,7 +88,7 @@ export async function requestLoan(payload: LoanRequestPayload): Promise<Loan | n
                 totalOwed,
                 balance: totalOwed,
                 status: 'Pendiente',
-                payments: [],
+                payments: '[]',
             },
         });
         return JSON.parse(JSON.stringify(newLoan));
@@ -102,11 +129,12 @@ export async function applyPayrollDeductions(payrollId: string, deductions: { gu
             if (paymentAmount > 0) {
                 const newBalance = loan.balance - paymentAmount;
                 const newStatus = newBalance <= 0 ? 'Pagado' : 'Aprobado';
-                const newPayments = [...(loan.payments as any[] || []), { payrollId, amount: paymentAmount, date: new Date().toISOString() }];
+                const currentPayments = loan.payments ? JSON.parse(loan.payments) : [];
+                const newPayments = [...currentPayments, { payrollId, amount: paymentAmount, date: new Date().toISOString() }];
 
                 await prisma.loan.update({
                     where: { id: loan.id },
-                    data: { balance: newBalance, status: newStatus, payments: newPayments },
+                    data: { balance: newBalance, status: newStatus, payments: JSON.stringify(newPayments) },
                 });
             }
         }

@@ -33,7 +33,7 @@ export async function getList(key: ListKey): Promise<string[]> {
 
 export async function updateList(key: ListKey, newList: string[]): Promise<void> {
     try {
-        const sortedList = newList.sort();
+        const sortedList = [...new Set(newList)].sort(); // Ensure unique values and sort
         await prisma.list.upsert({
             where: { key },
             update: { values: sortedList },

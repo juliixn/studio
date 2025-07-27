@@ -18,7 +18,13 @@ export async function getSurveys(condominioId?: string): Promise<Survey[]> {
             where: whereClause,
             orderBy: { createdAt: 'desc' },
         });
-        return JSON.parse(JSON.stringify(surveys));
+        
+        const processedSurveys = surveys.map(s => ({
+            ...s,
+            options: s.options ? JSON.parse(s.options as string) : []
+        }));
+        
+        return JSON.parse(JSON.stringify(processedSurveys));
     } catch (error) {
         console.error("Error fetching surveys:", error);
         return [];
@@ -27,11 +33,13 @@ export async function getSurveys(condominioId?: string): Promise<Survey[]> {
 
 export async function addSurvey(survey: Omit<Survey, 'id' | 'createdAt' | 'status'>): Promise<Survey | null> {
     try {
+        const dataToSave = {
+            ...survey,
+            options: survey.options ? JSON.stringify(survey.options) : '[]',
+            status: 'Abierta',
+        }
         const newSurvey = await prisma.survey.create({
-            data: {
-                ...survey,
-                status: 'Abierta',
-            },
+            data: dataToSave,
         });
         return JSON.parse(JSON.stringify(newSurvey));
     } catch (error) {
@@ -40,15 +48,15 @@ export async function addSurvey(survey: Omit<Survey, 'id' | 'createdAt' | 'statu
     }
 }
 
-export async function updateSurvey(surveyId: string, updates: Partial<Omit<Survey, 'id' | 'options'>> & { options?: SurveyOption[] }): Promise<Survey | null> {
+export async function updateSurvey(surveyId: string, updates: Partial<Omit<Survey, 'id'>>): Promise<Survey | null> {
     try {
-        const { options, ...restOfUpdates } = updates;
+        const dataToUpdate = {
+            ...updates,
+            options: updates.options ? JSON.stringify(updates.options) : undefined
+        };
         const updatedSurvey = await prisma.survey.update({
             where: { id: surveyId },
-            data: {
-                ...restOfUpdates,
-                ...(options && { options: options }),
-            },
+            data: dataToUpdate,
         });
         return JSON.parse(JSON.stringify(updatedSurvey));
     } catch (error) {
@@ -72,16 +80,16 @@ export async function deleteSurvey(surveyId: string): Promise<boolean> {
 export async function voteOnSurvey(surveyId: string, optionId: string): Promise<boolean> {
     try {
         const survey = await prisma.survey.findUnique({ where: { id: surveyId } });
-        if (!survey) return false;
+        if (!survey || !survey.options) return false;
 
-        const options = survey.options as SurveyOption[];
+        const options = JSON.parse(survey.options as string) as SurveyOption[];
         const optionIndex = options.findIndex(o => o.id === optionId);
         
         if (optionIndex !== -1) {
             options[optionIndex].votes++;
             await prisma.survey.update({
                 where: { id: surveyId },
-                data: { options: options },
+                data: { options: JSON.stringify(options) },
             });
             return true;
         }

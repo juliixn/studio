@@ -8,9 +8,11 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
     try {
         const conversations = await prisma.conversation.findMany({
             where: {
-                participantIds: {
-                    has: userId,
-                },
+                participants: {
+                    some: {
+                        id: userId
+                    }
+                }
             },
             include: {
                 messages: {
@@ -18,47 +20,70 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
                         createdAt: 'asc',
                     },
                 },
+                participants: true,
             },
             orderBy: {
                 lastMessageAt: 'desc',
             },
         });
-        return JSON.parse(JSON.stringify(conversations));
+
+        const processedConversations = conversations.map(convo => ({
+            ...convo,
+            participantIds: convo.participants.map(p => p.id),
+            participantNames: convo.participants.map(p => p.name)
+        }))
+
+        return JSON.parse(JSON.stringify(processedConversations));
     } catch (error) {
         console.error("Error fetching conversations:", error);
         return [];
     }
 }
 
-function getConversationId(userId1: string, userId2: string): string {
-    return [userId1, userId2].sort().join('--');
-}
-
 export async function addDirectMessage(author: User, recipient: User, text: string): Promise<Conversation | null> {
      try {
-        const conversationId = getConversationId(author.id, recipient.id);
-
-        await prisma.directMessage.create({
-            data: {
-                conversationId,
-                authorId: author.id,
-                authorName: author.name,
-                text,
-            },
-        });
+        const conversationId = [author.id, recipient.id].sort().join('--');
 
         const conversation = await prisma.conversation.upsert({
             where: { id: conversationId },
-            update: { lastMessageAt: new Date() },
+            update: { 
+                lastMessageAt: new Date(),
+                messages: {
+                    create: {
+                        authorId: author.id,
+                        authorName: author.name,
+                        recipientId: recipient.id,
+                        text,
+                    }
+                }
+            },
             create: {
                 id: conversationId,
-                participantIds: [author.id, recipient.id],
-                participantNames: [author.name, recipient.name],
-                lastMessageAt: new Date(),
+                participants: {
+                    connect: [{ id: author.id }, { id: recipient.id }]
+                },
+                messages: {
+                    create: {
+                        authorId: author.id,
+                        authorName: author.name,
+                        recipientId: recipient.id,
+                        text,
+                    }
+                }
             },
+            include: {
+                messages: true,
+                participants: true,
+            }
         });
+        
+        const processedConversation = {
+            ...conversation,
+            participantIds: conversation.participants.map(p => p.id),
+            participantNames: conversation.participants.map(p => p.name)
+        }
 
-        return JSON.parse(JSON.stringify(conversation));
+        return JSON.parse(JSON.stringify(processedConversation));
     } catch (error) {
         console.error("Error sending direct message:", error);
         return null;

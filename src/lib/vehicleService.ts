@@ -2,14 +2,15 @@
 "use server";
 
 import prisma from './prisma';
-import type { VehicleInfo } from './definitions';
+import type { User, VehicleInfo } from './definitions';
 
 export async function getUserVehicles(userId: string): Promise<VehicleInfo[]> {
     try {
-        const vehicles = await prisma.vehicle.findMany({
-            where: { userId: userId },
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { vehicles: true }
         });
-        return JSON.parse(JSON.stringify(vehicles));
+        return user ? JSON.parse(JSON.stringify(user.vehicles)) : [];
     } catch (error) {
         console.error(`Error fetching vehicles for user ${userId}:`, error);
         return [];
@@ -18,7 +19,7 @@ export async function getUserVehicles(userId: string): Promise<VehicleInfo[]> {
 
 export async function addUserVehicle(userId: string, vehicleData: Omit<VehicleInfo, 'id'>): Promise<VehicleInfo | null> {
     try {
-        const newVehicle = await prisma.vehicle.create({
+        const newVehicle = await prisma.vehicleInfo.create({
             data: {
                 ...vehicleData,
                 userId: userId,
@@ -33,7 +34,7 @@ export async function addUserVehicle(userId: string, vehicleData: Omit<VehicleIn
 
 export async function updateUserVehicle(vehicleId: string, updates: Partial<Omit<VehicleInfo, 'id'>>): Promise<VehicleInfo | null> {
     try {
-        const updatedVehicle = await prisma.vehicle.update({
+        const updatedVehicle = await prisma.vehicleInfo.update({
             where: { id: vehicleId },
             data: updates,
         });
@@ -46,7 +47,7 @@ export async function updateUserVehicle(vehicleId: string, updates: Partial<Omit
 
 export async function deleteUserVehicle(vehicleId: string): Promise<boolean> {
      try {
-        await prisma.vehicle.delete({
+        await prisma.vehicleInfo.delete({
             where: { id: vehicleId },
         });
         return true;

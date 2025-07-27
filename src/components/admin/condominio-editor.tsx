@@ -40,7 +40,6 @@ const guardMenuOptions: { id: GuardMenuSection; label: string; icon: React.React
 const formSchema = z.object({
   name: z.string().min(1, "El nombre es requerido."),
   mainAddress: z.string().min(1, "La dirección es requerida."),
-  guardIds: z.array(z.string()).optional(),
   geofenceRadius: z.coerce.number().optional(),
   guardsRequiredDiurno: z.coerce.number().int().min(1, "Debe ser al menos 1").optional(),
   guardsRequiredNocturno: z.coerce.number().int().min(1, "Debe ser al menos 1").optional(),
@@ -70,11 +69,10 @@ export default function CondominioEditor({ initialData, onSubmit, onCancel, isPe
         defaultValues: {
             name: initialData?.name || '',
             mainAddress: initialData?.mainAddress || '',
-            guardIds: initialData?.guardIds || [],
             geofenceRadius: initialData?.geofenceRadius || 200,
             guardsRequiredDiurno: initialData?.guardsRequiredDiurno || 1,
             guardsRequiredNocturno: initialData?.guardsRequiredNocturno || 1,
-            guardMenuSections: initialData?.guardMenuSections || [],
+            guardMenuSections: Array.isArray(initialData?.guardMenuSections) ? initialData?.guardMenuSections : [],
         },
     });
 
@@ -109,7 +107,7 @@ export default function CondominioEditor({ initialData, onSubmit, onCancel, isPe
                         <h2 className="text-2xl font-bold tracking-tight">
                             {initialData ? `Editando: ${initialData.name}` : 'Crear Nuevo Condominio'}
                         </h2>
-                        <p className="text-muted-foreground">Paso {step} de 3: {step === 1 ? "Información y Ubicación" : step === 2 ? "Asignación de Guardias" : "Menú del Guardia"}</p>
+                        <p className="text-muted-foreground">Paso {step} de 2: {step === 1 ? "Información y Ubicación" : "Menú del Guardia"}</p>
                     </div>
                 </div>
 
@@ -192,44 +190,7 @@ export default function CondominioEditor({ initialData, onSubmit, onCancel, isPe
                 {step === 2 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Paso 2: Asignación de Guardias</CardTitle>
-                            <CardDescription>Asigna los guardias que prestarán servicio en este condominio.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <FormField control={form.control} name="guardIds" render={() => (
-                                <FormItem>
-                                    <FormLabel className="flex items-center gap-2"><Shield /> Guardias Asignados</FormLabel>
-                                    <ScrollArea className="h-40 w-full rounded-md border p-4">
-                                        <div className="space-y-2">
-                                            {guards.map((guard) => (
-                                                <FormField key={guard.id} control={form.control} name="guardIds" render={({ field }) => (
-                                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={field.value?.includes(guard.id)}
-                                                                onCheckedChange={(checked) => {
-                                                                    return checked
-                                                                        ? field.onChange([...(field.value || []), guard.id])
-                                                                        : field.onChange(field.value?.filter(v => v !== guard.id));
-                                                                }}
-                                                            />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">{guard.name}</FormLabel>
-                                                    </FormItem>
-                                                )}/>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                </FormItem>
-                            )}/>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {step === 3 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Paso 3: Módulos para Guardias</CardTitle>
+                            <CardTitle>Paso 2: Módulos para Guardias</CardTitle>
                             <CardDescription>Selecciona las secciones del menú que estarán disponibles para los guardias de este condominio.</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -281,10 +242,10 @@ export default function CondominioEditor({ initialData, onSubmit, onCancel, isPe
                     {step > 1 && (
                         <Button type="button" variant="outline" onClick={() => setStep(step - 1)} disabled={isPending}>Anterior</Button>
                     )}
-                     {step < 3 && (
+                     {step < 2 && (
                         <Button type="button" onClick={() => setStep(step + 1)}>Siguiente</Button>
                     )}
-                    {step === 3 && (
+                    {step === 2 && (
                          <Button type="submit" disabled={isPending}>
                             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                             {initialData ? 'Guardar Cambios' : 'Crear Condominio'}

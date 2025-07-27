@@ -17,7 +17,14 @@ export async function getBitacora(condominioId?: string): Promise<BitacoraEntry[
                 createdAt: 'desc',
             },
         });
-        return JSON.parse(JSON.stringify(entries));
+        
+        // Convert photos from string to array
+        const processedEntries = entries.map(entry => ({
+            ...entry,
+            photos: entry.photos ? entry.photos.split(',') : [],
+        }));
+
+        return JSON.parse(JSON.stringify(processedEntries));
     } catch (error) {
         console.error("Error fetching bitacora entries:", error);
         return [];
@@ -39,8 +46,13 @@ interface NewEntryPayload {
 
 export async function addBitacoraEntry(payload: NewEntryPayload): Promise<BitacoraEntry | null> {
     try {
+        const dataToSave: any = {
+            ...payload,
+            photos: Array.isArray(payload.photos) ? payload.photos.join(',') : undefined,
+        };
+
         const newEntry = await prisma.bitacoraEntry.create({
-            data: payload
+            data: dataToSave
         });
         return JSON.parse(JSON.stringify(newEntry));
     } catch (error) {
@@ -56,12 +68,15 @@ interface UpdateEntryPayload {
 
 export async function updateBitacoraEntry(entryId: string, payload: UpdateEntryPayload): Promise<BitacoraEntry | null> {
      try {
+        const dataToUpdate: any = {
+            ...payload,
+            photos: Array.isArray(payload.photos) ? payload.photos.join(',') : undefined,
+            updatedAt: new Date(),
+        };
+
         const updatedEntry = await prisma.bitacoraEntry.update({
             where: { id: entryId },
-            data: {
-                ...payload,
-                updatedAt: new Date(),
-            }
+            data: dataToUpdate
         });
         return JSON.parse(JSON.stringify(updatedEntry));
     } catch (error) {

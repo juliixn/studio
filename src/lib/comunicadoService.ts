@@ -20,7 +20,13 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
                 createdAt: 'desc',
             },
         });
-        return JSON.parse(JSON.stringify(comunicados));
+        
+        const processedComs = comunicados.map(c => ({
+            ...c,
+            channels: c.channels ? (c.channels as unknown as string).split(',') : []
+        }))
+
+        return JSON.parse(JSON.stringify(processedComs));
     } catch (error) {
         console.error("Error fetching comunicados:", error);
         return [];
@@ -29,8 +35,12 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
 
 export async function addComunicado(payload: Omit<Comunicado, 'id' | 'createdAt'>): Promise<Comunicado | null> {
     try {
+        const dataToSave = {
+            ...payload,
+            channels: Array.isArray(payload.channels) ? payload.channels.join(',') : '',
+        }
         const newComunicado = await prisma.comunicado.create({
-            data: payload
+            data: dataToSave
         });
         return JSON.parse(JSON.stringify(newComunicado));
     } catch (error) {
