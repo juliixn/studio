@@ -1,0 +1,35 @@
+name: Auto-commit changes
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  commit-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Important: Give the workflow permission to write to the repository
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Use a PAT if you need to trigger other workflows, otherwise GITHUB_TOKEN is fine
+          token: ${{ secrets.GITHUB_TOKEN }} 
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'Firebase Studio Bot'
+          git config --global user.email 'firebase-studio-bot@google.com'
+
+      - name: Commit and push changes
+        run: |
+          git add -A
+          # The following command exits with 1 if there are no changes, so we handle it
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Auto-commit de cambios de Firebase Studio"
+          git push
+
