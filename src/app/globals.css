@@ -1,0 +1,62 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 10%;
+    --foreground: 210 20% 90%;
+    --card: 220 13% 15%;
+    --card-foreground: 210 20% 90%;
+    --popover: 220 13% 10%;
+    --popover-foreground: 210 20% 90%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 10% 50%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 220 10% 25%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 220 10% 25%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 10% 30%;
+    --input: 220 10% 30%;
+    --ring: 217 91% 60%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .panic-banner-flash {
+    animation: panic-flash 2s infinite;
+  }
+  
+  @keyframes panic-flash {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+}

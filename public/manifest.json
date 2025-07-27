@@ -1,0 +1,21 @@
+{
+  "name": "Acceso Seguro",
+  "short_name": "Acceso Seguro",
+  "description": "Aplicación de control de acceso.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F0F0F0",
+  "theme_color": "#1E3A8A",
+  "icons": [
+    {
+      "src": "https://placehold.co/192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://placehold.co/512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
