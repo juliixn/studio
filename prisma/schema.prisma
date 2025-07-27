@@ -1,182 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider     = "postgresql"
-  url          = env("DATABASE_URL")
-  relationMode = "prisma"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                    String    @id @default(uuid())
-  username              String    @unique
-  name                  String
-  email                 String    @unique
-  password              String
-  role                  String
-  photoUrl              String?
-  condominioId          String?
-  addressId             String?
-  condominioIds         String[]
-  addressIds            String[]
-  vehicles              VehicleInfo[]
-  dailySalary           Float?
-  allowRemoteCheckIn    Boolean?  @default(false)
-  loanLimit             Float?
-  interestRate          Float?
-  leaseStartDate        DateTime?
-  leaseEndDate          DateTime?
-  numberOfInhabitants   Int?
-  inhabitantNames       String[]
-  requires_password_change Boolean? @default(false)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+  posts Post[]
 }
 
-model VehicleInfo {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alias         String?
-  licensePlate  String
-  brand         String
-  color         String
-  type          String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model Condominio {
-  id                      String    @id @default(uuid())
-  name                    String
-  mainAddress             String
-  latitude                Float?
-  longitude               Float?
-  status                  String    @default("Activo")
-  guardIds                String[]
-  geofenceRadius          Int?
-  guardsRequiredDiurno    Int?      @default(1)
-  guardsRequiredNocturno  Int?      @default(1)
-  guardMenuSections       String[]
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-}
-
-model Address {
-  id            String   @id @default(uuid())
-  fullAddress   String
-  condominioId  String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-model VehicularRegistration {
-  id                String    @id @default(uuid())
-  licensePlate      String
-  fullName          String
-  visitorType       String
-  providerType      String?
-  employeeType      String?
-  vehicleType       String
-  vehicleBrand      String
-  vehicleColor      String
-  address           String
-  entryTimestamp    DateTime  @default(now())
-  exitTimestamp     DateTime?
-  condominioId      String
-  condominioName    String
-  visitorIdPhotoUrl String?
-  vehiclePhotoUrl   String?
-}
-
-model PedestrianRegistration {
-  id                String    @id @default(uuid())
-  fullName          String
-  visitorType       String
-  address           String
-  entryTimestamp    DateTime  @default(now())
-  exitTimestamp     DateTime?
-  condominioId      String
-  condominioName    String
-  visitorIdPhotoUrl String?
-}
-
-model Peticion {
-  id              String             @id @default(uuid())
-  title           String
-  description     String
-  creatorId       String
-  creatorName     String
-  creatorRole     String
-  condominioId    String
-  condominioName  String
-  status          String
-  category        String?
-  createdAt       DateTime           @default(now())
-  comments        PeticionComment[]
-}
-
-model PeticionComment {
-  id          String   @id @default(uuid())
-  authorId    String
-  authorName  String
-  text        String
-  createdAt   DateTime @default(now())
-  peticion    Peticion   @relation(fields: [peticionId], references: [id], onDelete: Cascade)
-  peticionId  String
-
-  @@index([peticionId])
-}
-
-model BitacoraEntry {
-  id            String   @id @default(uuid())
-  condominioId  String
-  authorId      String
-  authorName    String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime? @updatedAt
-  type          String
-  text          String
-  relatedId     String?
-  photos        String[]
-  category      String?
-  latitude      Float?
-  longitude     Float?
-}
-
-model ShiftRecord {
-  id              String    @id @default(uuid())
-  guardId         String
-  guardName       String
-  condominioId    String
-  condominioName  String
-  turno           String
-  startTime       DateTime  @default(now())
-  endTime         DateTime?
-  equipmentIds    String[]
-  handoverNotes   String?
-  incident        String?
-}
-
-model Package {
-  id                    String   @id @default(uuid())
-  recipientAddressId    String
-  recipientAddress      String
-  recipientName         String
-  trackingNumber        String?
-  courierName           String
-  courierCompany        String
-  status                String
-  receivedAt            DateTime @default(now())
-  deliveredAt           DateTime?
-  receivedByGuardId     String
-  receivedByGuardName   String
-  deliveredToName       String?
-  condominioId          String
-  damageNotes           String?
-  deliveryPhotoUrl      String?
-  deliverySignatureUrl  String?
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  author    User?    @relation(fields: [authorId], references: [id])
+  authorId  Int?
 }
