@@ -21,14 +21,6 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Image from 'next/image';
 
-const navItemsConfig = [
-  { href: '/admin/dashboard', icon: Home, label: 'Inicio', id: 'dashboard' },
-  { href: '/admin/gestion', icon: LayoutGrid, label: 'Gestión', id: 'usuarios' },
-  { href: '/admin/operaciones', icon: ClipboardList, label: 'Operaciones', id: 'registros' },
-  { href: '/admin/finanzas', icon: DollarSign, label: 'Finanzas', id: 'finanzas' },
-  { href: '/admin/configuracion', icon: Settings, label: 'Ajustes', id: 'configuracion' },
-];
-
 export default async function AdminLayout({
   children,
 }: {
@@ -81,7 +73,7 @@ export default async function AdminLayout({
                        <DropdownMenuSeparator />
                        <form action={handleLogout}>
                             <DropdownMenuItem asChild>
-                               <button type="submit" className="w-full">
+                               <button type="submit" className="w-full text-left">
                                    <LogOut className="mr-2 h-4 w-4" />
                                    <span>Cerrar Sesión</span>
                                </button>

@@ -6,16 +6,26 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { LogOut } from 'lucide-react';
 import LiveClock from '@/components/live-clock';
 import Image from 'next/image';
+import type { User } from '@/lib/definitions';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
 
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     redirect('/');
   }
   
-  const user = data.user;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) {
+    await supabase.auth.signOut();
+    return redirect('/');
+  }
 
   const signOut = async () => {
     'use server';
@@ -37,15 +47,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10 border-2 border-primary/50">
-                          <AvatarImage src={user.user_metadata.photoUrl} alt={user.user_metadata.name} data-ai-hint="profile picture" />
-                          <AvatarFallback>{user.user_metadata.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                          <AvatarImage src={profile.photoUrl} alt={profile.name} data-ai-hint="profile picture" />
+                          <AvatarFallback>{profile.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                       </Avatar>
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.user_metadata.name}</p>
+                      <p className="text-sm font-medium leading-none">{profile.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">
                       {user.email}
                       </p>
@@ -54,7 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <DropdownMenuSeparator />
                   <form action={signOut}>
                     <DropdownMenuItem asChild>
-                      <button className="w-full">
+                      <button className="w-full text-left">
                         <LogOut className="mr-2 h-4 w-4" />
                         <span>Cerrar Sesión</span>
                       </button>

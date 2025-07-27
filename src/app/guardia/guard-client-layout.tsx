@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
@@ -22,6 +21,12 @@ export default function GuardClientLayout({ user: initialUser, children }: { use
     const [loading, setLoading] = useState(true);
 
     const supabase = createClient();
+
+    useEffect(() => {
+        sessionStorage.setItem('loggedInUser', JSON.stringify(initialUser));
+        setUser(initialUser);
+    }, [initialUser]);
+
 
     useEffect(() => {
         const storedTurno = sessionStorage.getItem('turnoInfo');
@@ -47,6 +52,7 @@ export default function GuardClientLayout({ user: initialUser, children }: { use
         await supabase.auth.signOut();
         sessionStorage.removeItem('turnoInfo');
         sessionStorage.removeItem('currentShiftId');
+        sessionStorage.removeItem('loggedInUser');
         router.push('/');
     };
 
@@ -71,15 +77,15 @@ export default function GuardClientLayout({ user: initialUser, children }: { use
               <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full" disabled={!user}>
                       {user && <Avatar className="h-10 w-10 border-2 border-primary/50">
-                          <AvatarImage src={user.user_metadata.photoUrl} alt={user.user_metadata.name} data-ai-hint="profile picture" />
-                          <AvatarFallback>{user.user_metadata.name?.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                          <AvatarImage src={user.photoUrl} alt={user.name} data-ai-hint="profile picture" />
+                          <AvatarFallback>{user.name?.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
                       </Avatar>}
                   </Button>
               </DropdownMenuTrigger>
               {user && <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.user_metadata.name}</p>
+                      <p className="text-sm font-medium leading-none">{user.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}
                       </p>

@@ -79,12 +79,12 @@ function LoginForm({ onForgotPasswordClick }: { onForgotPasswordClick: () => voi
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
-
-    if (error) {
+    
+    if (error || !data.user) {
       toast({
         title: "Error de inicio de sesión",
         description: "Credenciales de inicio de sesión inválidas.",
@@ -93,6 +93,27 @@ function LoginForm({ onForgotPasswordClick }: { onForgotPasswordClick: () => voi
       setIsLoading(false);
       return;
     }
+    
+    // Fetch profile to get role and other details
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      toast({
+        title: "Error de perfil",
+        description: "No se pudo cargar tu perfil. Contacta a soporte.",
+        variant: "destructive",
+      });
+      await supabase.auth.signOut();
+      setIsLoading(false);
+      return;
+    }
+
+    // Store user profile in sessionStorage
+    sessionStorage.setItem('loggedInUser', JSON.stringify(profile));
     
     toast({
       title: "Inicio de Sesión Exitoso",

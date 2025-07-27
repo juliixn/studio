@@ -1,27 +1,24 @@
-import { cookies } from 'next/headers';
-import prisma from './prisma';
+import { createClient } from './supabase/server';
+import type { User } from './definitions';
 
-// This is a simplified, mock authentication system for demonstration purposes
-// after removing Supabase Auth. In a real application, you would replace this
-// with a robust authentication provider like NextAuth.js, Clerk, or Lucia.
+export async function getUserFromSession(): Promise<User | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-export async function getUserFromSession() {
-  const cookieStore = cookies();
-  const sessionToken = cookieStore.get('session')?.value;
+    if (!user) {
+        return null;
+    }
 
-  if (!sessionToken) {
-    return null;
-  }
+    const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-  // In a real app, you would verify the session token against a database
-  // or an external auth provider. Here, we'll just look up the user by email.
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email: sessionToken },
-    });
-    return user;
-  } catch (error) {
-    console.error("Session lookup failed:", error);
-    return null;
-  }
+    if (error) {
+        console.error("Error fetching user profile:", error);
+        return null;
+    }
+    
+    return profile as User;
 }
