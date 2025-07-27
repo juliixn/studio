@@ -1,55 +1,66 @@
 
-"use client";
+"use server";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { Condominio } from './definitions';
 
 export async function getCondominios(): Promise<Condominio[]> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('condominios').select('*').order('name');
-    if (error) {
+    try {
+        const condominios = await prisma.condominio.findMany({
+            orderBy: { name: 'asc' }
+        });
+        return JSON.parse(JSON.stringify(condominios));
+    } catch (error) {
         console.error("Error fetching condominios:", error);
         return [];
     }
-    return data as Condominio[];
 }
 
 export async function getCondominioById(id: string): Promise<Condominio | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('condominios').select('*').eq('id', id).single();
-    if (error) {
+    try {
+        const condominio = await prisma.condominio.findUnique({
+            where: { id }
+        });
+        return JSON.parse(JSON.stringify(condominio));
+    } catch (error) {
         console.error(`Error fetching condominio ${id}:`, error);
         return null;
     }
-    return data as Condominio;
 }
 
 export async function addCondominio(condoData: Partial<Omit<Condominio, 'id'>>): Promise<Condominio | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('condominios').insert([condoData]).select().single();
-    if (error) {
+     try {
+        const newCondo = await prisma.condominio.create({
+            data: condoData as any, // Cast because of optional fields
+        });
+        return JSON.parse(JSON.stringify(newCondo));
+    } catch (error) {
         console.error("Error adding condominio:", error);
         return null;
     }
-    return data as Condominio;
 }
 
 export async function updateCondominio(id: string, updates: Partial<Omit<Condominio, 'id'>>): Promise<Condominio | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase.from('condominios').update(updates).eq('id', id).select().single();
-    if (error) {
+    try {
+        const updatedCondo = await prisma.condominio.update({
+            where: { id },
+            data: updates,
+        });
+        return JSON.parse(JSON.stringify(updatedCondo));
+    } catch (error) {
         console.error(`Error updating condominio ${id}:`, error);
         return null;
     }
-    return data as Condominio;
 }
 
 export async function deleteCondominio(id: string): Promise<boolean> {
-    const supabase = createClient();
-    const { error } = await supabase.from('condominios').delete().eq('id', id);
-    if (error) {
+     try {
+        await prisma.condominio.delete({
+            where: { id },
+        });
+        return true;
+    } catch (error) {
         console.error(`Error deleting condominio ${id}:`, error);
         return false;
     }
-    return true;
 }

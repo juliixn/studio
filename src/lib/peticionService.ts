@@ -1,68 +1,72 @@
 
-"use client";
+"use server";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { Peticion } from './definitions';
 
-// --- Public API using Supabase ---
-
 export async function getPeticiones(condominioId?: string, creatorId?: string): Promise<Peticion[]> {
-    const supabase = createClient();
-    let query = supabase.from('peticiones').select('*');
+    try {
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
+        }
+        if (creatorId) {
+            whereClause.creatorId = creatorId;
+        }
 
-    if (condominioId) {
-        query = query.eq('condominioId', condominioId);
-    }
-    if (creatorId) {
-        query = query.eq('creatorId', creatorId);
-    }
-    
-    const { data, error } = await query.order('createdAt', { ascending: false });
-
-    if (error) {
+        const peticiones = await prisma.peticion.findMany({
+            where: whereClause,
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        return JSON.parse(JSON.stringify(peticiones));
+    } catch (error) {
         console.error("Error fetching peticiones:", error);
         return [];
     }
-
-    return data as Peticion[];
 }
 
 export async function addPeticion(peticionData: Omit<Peticion, 'id' | 'createdAt' | 'status' | 'comments'>): Promise<Peticion | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('peticiones')
-        .insert([{ 
-            ...peticionData,
-            status: 'Abierta',
-            comments: [] 
-        }])
-        .select()
-        .single();
-    
-    if (error) {
+    try {
+        const newPeticion = await prisma.peticion.create({
+            data: {
+                ...peticionData,
+                status: 'Abierta',
+                comments: {
+                    create: [] // Start with no comments
+                }
+            }
+        });
+        return JSON.parse(JSON.stringify(newPeticion));
+    } catch (error) {
         console.error("Error adding peticion:", error);
         return null;
     }
-    return data as Peticion;
 }
 
-export async function updatePeticion(peticionId: string, updates: Partial<Omit<Peticion, 'id'>>): Promise<Peticion | null> {
-    const supabase = createClient();
-    
-    const updateData = { ...updates };
-    // Asegurarse de que el ID no se incluya en el payload de actualización
-    delete (updateData as any).id;
-    
-    const { data, error } = await supabase
-        .from('peticiones')
-        .update(updateData)
-        .eq('id', peticionId)
-        .select()
-        .single();
-    
-    if (error) {
+export async function updatePeticion(peticionId: string, updates: Partial<Peticion>): Promise<Peticion | null> {
+    try {
+        const { comments, ...restOfUpdates } = updates;
+        
+        const updatedPeticion = await prisma.peticion.update({
+            where: { id: peticionId },
+            data: {
+                ...restOfUpdates,
+                ...(comments && {
+                    comments: {
+                        create: comments.map(c => ({
+                            authorId: c.authorId,
+                            authorName: c.authorName,
+                            text: c.text,
+                        }))
+                    }
+                })
+            },
+        });
+        return JSON.parse(JSON.stringify(updatedPeticion));
+    } catch (error) {
         console.error("Error updating peticion:", error);
         return null;
     }
-    return data as Peticion;
 }

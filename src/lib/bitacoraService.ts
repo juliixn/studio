@@ -1,26 +1,27 @@
 
-"use client";
+"use server";
 
-import { createClient } from './supabase/client';
+import prisma from './prisma';
 import type { BitacoraEntry, BitacoraEntryType } from './definitions';
 
-// --- Public API using Supabase ---
-
 export async function getBitacora(condominioId?: string): Promise<BitacoraEntry[]> {
-    const supabase = createClient();
-    let query = supabase.from('bitacora_entries').select('*');
+    try {
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
+        }
 
-    if (condominioId) {
-        query = query.eq('condominioId', condominioId);
-    }
-    
-    const { data, error } = await query.order('createdAt', { ascending: false });
-
-    if (error) {
+        const entries = await prisma.bitacoraEntry.findMany({
+            where: whereClause,
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        return JSON.parse(JSON.stringify(entries));
+    } catch (error) {
         console.error("Error fetching bitacora entries:", error);
         return [];
     }
-    return data as BitacoraEntry[];
 }
 
 interface NewEntryPayload {
@@ -37,18 +38,15 @@ interface NewEntryPayload {
 }
 
 export async function addBitacoraEntry(payload: NewEntryPayload): Promise<BitacoraEntry | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('bitacora_entries')
-        .insert([{ ...payload }])
-        .select()
-        .single();
-        
-    if (error) {
+    try {
+        const newEntry = await prisma.bitacoraEntry.create({
+            data: payload
+        });
+        return JSON.parse(JSON.stringify(newEntry));
+    } catch (error) {
         console.error("Error adding bitacora entry:", error);
         return null;
     }
-    return data as BitacoraEntry;
 }
 
 interface UpdateEntryPayload {
@@ -57,21 +55,17 @@ interface UpdateEntryPayload {
 }
 
 export async function updateBitacoraEntry(entryId: string, payload: UpdateEntryPayload): Promise<BitacoraEntry | null> {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('bitacora_entries')
-        .update({ 
-            text: payload.text,
-            photos: payload.photos,
-            updatedAt: new Date().toISOString() 
-        })
-        .eq('id', entryId)
-        .select()
-        .single();
-    
-    if (error) {
+     try {
+        const updatedEntry = await prisma.bitacoraEntry.update({
+            where: { id: entryId },
+            data: {
+                ...payload,
+                updatedAt: new Date(),
+            }
+        });
+        return JSON.parse(JSON.stringify(updatedEntry));
+    } catch (error) {
         console.error("Error updating bitacora entry:", error);
         return null;
     }
-    return data as BitacoraEntry;
 }

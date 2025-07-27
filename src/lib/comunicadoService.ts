@@ -1,48 +1,40 @@
 
-"use client";
+"use server";
 
 import prisma from './prisma';
 import type { Comunicado } from './definitions';
 
-// For now, using mock data until a proper solution for server/client data fetching is established.
-import { mockComunicados } from './data';
-
-const STORAGE_KEY = 'comunicados-v1';
-
-function getFromStorage(): Comunicado[] {
-    if (typeof window === 'undefined') return mockComunicados;
+export async function getComunicados(condominioId?: string): Promise<Comunicado[]> {
     try {
-        const stored = sessionStorage.getItem(STORAGE_KEY);
-        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.OR = [
+                { target: 'all' },
+                { target: condominioId }
+            ];
+        }
+
+        const comunicados = await prisma.comunicado.findMany({
+            where: whereClause,
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        return JSON.parse(JSON.stringify(comunicados));
     } catch (error) {
-        console.error(`Error parsing sessionStorage key "${STORAGE_KEY}":`, error);
-    }
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(mockComunicados));
-    return mockComunicados;
-}
-
-function saveToStorage(comunicados: Comunicado[]) {
-    if (typeof window !== 'undefined') {
-        const sorted = comunicados.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+        console.error("Error fetching comunicados:", error);
+        return [];
     }
 }
 
-
-export function getComunicados(condominioId?: string): Comunicado[] {
-    const comunicados = getFromStorage();
-    if (!condominioId) return comunicados;
-    return comunicados.filter(c => c.target === 'all' || c.target === condominioId);
-}
-
-export function addComunicado(payload: Omit<Comunicado, 'id' | 'createdAt'>): Comunicado {
-    const comunicados = getFromStorage();
-    const newComunicado: Comunicado = {
-        ...payload,
-        id: `com-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-    };
-    const updated = [newComunicado, ...comunicados];
-    saveToStorage(updated);
-    return newComunicado;
+export async function addComunicado(payload: Omit<Comunicado, 'id' | 'createdAt'>): Promise<Comunicado | null> {
+    try {
+        const newComunicado = await prisma.comunicado.create({
+            data: payload
+        });
+        return JSON.parse(JSON.stringify(newComunicado));
+    } catch (error) {
+        console.error("Error adding comunicado:", error);
+        return null;
+    }
 }

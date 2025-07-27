@@ -1,21 +1,18 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import type { UserRole } from '@/lib/definitions';
-import { getUserFromSession } from '@/lib/authService';
+// We cannot use server-side libraries like Prisma in middleware.
+// The session check must be done using cookies or other edge-compatible methods.
+// For this simulation, we'll rely on a user cookie.
 
 export async function middleware(request: NextRequest) {
-  // Since we are using a mock service with client-side storage,
-  // the server-side middleware can't access the session directly.
-  // We'll rely on the client-side redirects inside the layouts.
-  // This middleware will handle basic route protection for unauthenticated users.
-  
   const sessionCookie = request.cookies.get('loggedInUser');
   let user = null;
   if(sessionCookie) {
     try {
       user = JSON.parse(sessionCookie.value);
     } catch(e) {
-      console.error('Failed to parse user cookie');
+      console.error('Failed to parse user cookie in middleware');
     }
   }
 

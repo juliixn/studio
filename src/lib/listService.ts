@@ -1,17 +1,7 @@
 
-'use client';
+"use server";
 
-import {
-  visitorTypes as initialVisitorTypes,
-  vehicleVisitorTypes as initialVehicleVisitorTypes,
-  vehicleTypes as initialVehicleTypes,
-  vehicleBrands as initialVehicleBrands,
-  vehicleColors as initialVehicleColors,
-  equipment as initialEquipment,
-  incidentCategories as initialIncidentCategories,
-  providerTypes as initialProviderTypes,
-  employeeTypes as initialEmployeeTypes
-} from './data';
+import prisma from './prisma';
 
 export const listKeys = [
     'visitorTypes', 
@@ -27,44 +17,29 @@ export const listKeys = [
 
 export type ListKey = typeof listKeys[number];
 
-const initialDataMap: Record<ListKey, string[]> = {
-    visitorTypes: initialVisitorTypes,
-    vehicleVisitorTypes: initialVehicleVisitorTypes,
-    vehicleTypes: initialVehicleTypes,
-    vehicleBrands: initialVehicleBrands,
-    vehicleColors: initialVehicleColors,
-    equipment: initialEquipment,
-    incidentCategories: initialIncidentCategories,
-    providerTypes: initialProviderTypes,
-    employeeTypes: initialEmployeeTypes,
-};
+// This service now interacts with Prisma instead of localStorage
 
-function getFromStorage(key: ListKey): string[] {
-    if (typeof window === 'undefined') {
-        return initialDataMap[key];
-    }
+export async function getList(key: ListKey): Promise<string[]> {
     try {
-        const storedData = localStorage.getItem(`list-${key}`);
-        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
-            return JSON.parse(storedData);
-        }
+        const list = await prisma.list.findUnique({
+            where: { key },
+        });
+        return list ? list.values : [];
     } catch (error) {
-        console.error(`Failed to parse from localStorage key "list-${key}", re-initializing.`, error);
-    }
-    localStorage.setItem(`list-${key}`, JSON.stringify(initialDataMap[key]));
-    return initialDataMap[key];
-}
-
-function saveToStorage(key: ListKey, data: string[]) {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem(`list-${key}`, JSON.stringify(data.sort()));
+        console.error(`Error fetching list "${key}":`, error);
+        return [];
     }
 }
 
-export function getList(key: ListKey): string[] {
-    return getFromStorage(key);
-}
-
-export function updateList(key: ListKey, newList: string[]): void {
-    saveToStorage(key, newList);
+export async function updateList(key: ListKey, newList: string[]): Promise<void> {
+    try {
+        const sortedList = newList.sort();
+        await prisma.list.upsert({
+            where: { key },
+            update: { values: sortedList },
+            create: { key, values: sortedList },
+        });
+    } catch (error) {
+        console.error(`Error updating list "${key}":`, error);
+    }
 }

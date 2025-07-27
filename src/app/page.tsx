@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { login } from '@/lib/authService';
+import { login, saveUserToSession } from '@/lib/authService';
 
 function ForgotPasswordForm({ onBackToLogin }: { onBackToLogin: () => void }) {
   const { toast } = useToast();
@@ -83,7 +83,7 @@ function LoginForm({ onForgotPasswordClick }: { onForgotPasswordClick: () => voi
     }
     
     // Store user profile in sessionStorage
-    sessionStorage.setItem('loggedInUser', JSON.stringify(result.user));
+    saveUserToSession(result.user);
     
     toast({
       title: "Inicio de Sesión Exitoso",

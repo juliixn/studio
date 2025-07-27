@@ -1,90 +1,99 @@
 
-"use client";
+"use server";
 
-import { mockVehicularRegistrations as initialVehicular, mockPedestrianRegistrations as initialPedestrian } from './data';
+import prisma from './prisma';
 import type { VehicularRegistration, PedestrianRegistration } from './definitions';
 
-const VEHICULAR_KEY = 'vehicularRegistrations-v4';
-const PEDESTRIAN_KEY = 'pedestrianRegistrations-v4';
-
 // --- Vehicular Registrations ---
-function getVehicularFromStorage(): VehicularRegistration[] {
-    if (typeof window === 'undefined') return initialVehicular;
+
+export async function getVehicularRegistrations(condominioId?: string): Promise<VehicularRegistration[]> {
     try {
-        const stored = sessionStorage.getItem(VEHICULAR_KEY);
-        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
-    } catch (error) { console.error(`Error parsing sessionStorage key "${VEHICULAR_KEY}":`, error); }
-    sessionStorage.setItem(VEHICULAR_KEY, JSON.stringify(initialVehicular));
-    return initialVehicular;
-}
-
-function saveVehicularToStorage(registrations: VehicularRegistration[]) {
-    if (typeof window !== 'undefined') {
-        const sorted = registrations.sort((a,b) => new Date(b.entryTimestamp).getTime() - new Date(a.entryTimestamp).getTime());
-        sessionStorage.setItem(VEHICULAR_KEY, JSON.stringify(sorted));
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
+        }
+        const registrations = await prisma.vehicularRegistration.findMany({
+            where: whereClause,
+            orderBy: { entryTimestamp: 'desc' }
+        });
+        return JSON.parse(JSON.stringify(registrations));
+    } catch (error) {
+        console.error("Error fetching vehicular registrations:", error);
+        return [];
     }
 }
 
-export function getVehicularRegistrations(condominioId?: string): VehicularRegistration[] {
-    let all = getVehicularFromStorage();
-    return condominioId ? all.filter(r => r.condominioId === condominioId) : all;
-}
-
-export function addVehicularRegistration(reg: Omit<VehicularRegistration, 'id' | 'entryTimestamp'>): VehicularRegistration {
-    const all = getVehicularFromStorage();
-    const newReg = { ...reg, id: `vr-${Date.now()}`, entryTimestamp: new Date().toISOString() };
-    saveVehicularToStorage([newReg, ...all]);
-    return newReg;
-}
-
-export function updateVehicularExit(id: string): VehicularRegistration | null {
-    const all = getVehicularFromStorage();
-    const index = all.findIndex(r => r.id === id);
-    if (index > -1) {
-        all[index].exitTimestamp = new Date().toISOString();
-        saveVehicularToStorage(all);
-        return all[index];
+export async function addVehicularRegistration(reg: Omit<VehicularRegistration, 'id' | 'entryTimestamp'>): Promise<VehicularRegistration | null> {
+    try {
+        const newReg = await prisma.vehicularRegistration.create({
+            data: {
+                ...reg,
+                entryTimestamp: new Date(),
+            }
+        });
+        return JSON.parse(JSON.stringify(newReg));
+    } catch (error) {
+        console.error("Error adding vehicular registration:", error);
+        return null;
     }
-    return null;
+}
+
+export async function updateVehicularExit(id: string): Promise<VehicularRegistration | null> {
+     try {
+        const updatedReg = await prisma.vehicularRegistration.update({
+            where: { id },
+            data: { exitTimestamp: new Date() }
+        });
+        return JSON.parse(JSON.stringify(updatedReg));
+    } catch (error) {
+        console.error(`Error updating vehicular exit for ${id}:`, error);
+        return null;
+    }
 }
 
 // --- Pedestrian Registrations ---
-function getPedestrianFromStorage(): PedestrianRegistration[] {
-    if (typeof window === 'undefined') return initialPedestrian;
+
+export async function getPedestrianRegistrations(condominioId?: string): Promise<PedestrianRegistration[]> {
     try {
-        const stored = sessionStorage.getItem(PEDESTRIAN_KEY);
-        if (stored && stored !== 'undefined' && stored !== 'null') return JSON.parse(stored);
-    } catch (error) { console.error(`Error parsing sessionStorage key "${PEDESTRIAN_KEY}":`, error); }
-    sessionStorage.setItem(PEDESTRIAN_KEY, JSON.stringify(initialPedestrian));
-    return initialPedestrian;
-}
-
-function savePedestrianToStorage(registrations: PedestrianRegistration[]) {
-     if (typeof window !== 'undefined') {
-        const sorted = registrations.sort((a,b) => new Date(b.entryTimestamp).getTime() - new Date(a.entryTimestamp).getTime());
-        sessionStorage.setItem(PEDESTRIAN_KEY, JSON.stringify(sorted));
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
+        }
+        const registrations = await prisma.pedestrianRegistration.findMany({
+            where: whereClause,
+            orderBy: { entryTimestamp: 'desc' }
+        });
+        return JSON.parse(JSON.stringify(registrations));
+    } catch (error) {
+        console.error("Error fetching pedestrian registrations:", error);
+        return [];
     }
 }
 
-export function getPedestrianRegistrations(condominioId?: string): PedestrianRegistration[] {
-    let all = getPedestrianFromStorage();
-    return condominioId ? all.filter(r => r.condominioId === condominioId) : all;
-}
-
-export function addPedestrianRegistration(reg: Omit<PedestrianRegistration, 'id' | 'entryTimestamp'>): PedestrianRegistration {
-    const all = getPedestrianFromStorage();
-    const newReg = { ...reg, id: `pr-${Date.now()}`, entryTimestamp: new Date().toISOString() };
-    savePedestrianToStorage([newReg, ...all]);
-    return newReg;
-}
-
-export function updatePedestrianExit(id: string): PedestrianRegistration | null {
-    const all = getPedestrianFromStorage();
-    const index = all.findIndex(r => r.id === id);
-    if (index > -1) {
-        all[index].exitTimestamp = new Date().toISOString();
-        savePedestrianToStorage(all);
-        return all[index];
+export async function addPedestrianRegistration(reg: Omit<PedestrianRegistration, 'id' | 'entryTimestamp'>): Promise<PedestrianRegistration | null> {
+    try {
+        const newReg = await prisma.pedestrianRegistration.create({
+            data: {
+                ...reg,
+                entryTimestamp: new Date(),
+            }
+        });
+        return JSON.parse(JSON.stringify(newReg));
+    } catch (error) {
+        console.error("Error adding pedestrian registration:", error);
+        return null;
     }
-    return null;
+}
+
+export async function updatePedestrianExit(id: string): Promise<PedestrianRegistration | null> {
+    try {
+        const updatedReg = await prisma.pedestrianRegistration.update({
+            where: { id },
+            data: { exitTimestamp: new Date() }
+        });
+        return JSON.parse(JSON.stringify(updatedReg));
+    } catch (error) {
+        console.error(`Error updating pedestrian exit for ${id}:`, error);
+        return null;
+    }
 }
