@@ -6,16 +6,17 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model User {
-  id                    String    @id @default(cuid())
+  id                    String    @id @default(uuid())
   username              String    @unique
   name                  String
   email                 String    @unique
-  password              String?
+  password              String
   role                  String
   photoUrl              String?
   condominioId          String?
@@ -24,443 +25,157 @@ model User {
   addressIds            String[]
   vehicles              VehicleInfo[]
   dailySalary           Float?
-  allowRemoteCheckIn    Boolean?
+  allowRemoteCheckIn    Boolean?  @default(false)
   loanLimit             Float?
   interestRate          Float?
   leaseStartDate        DateTime?
   leaseEndDate          DateTime?
   numberOfInhabitants   Int?
   inhabitantNames       String[]
-  createdPeticiones     Peticion[]        @relation("CreatedPeticiones")
-  authoredComments      PeticionComment[]
-  createdBitacoraEntries BitacoraEntry[]
-  createdReservations   Reservation[]
-  createdGuestPasses    GuestPass[]
-  authoredChatMessages  ChatMessage[]
-  authoredDirectMessages DirectMessage[]
-  createdAlertResponses AlertResponse[]
-  createdShiftRecords   ShiftRecord[]
-  createdLoans          Loan[]            @relation("CreatedLoans")
-  authoredHandoverNotes HandoverNote[]
-  condominios           Condominio[]      @relation("UserCondos")
+  requires_password_change Boolean? @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model VehicleInfo {
-  id            String  @id @default(cuid())
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   alias         String?
   licensePlate  String
   brand         String
   color         String
   type          String
-  userId        String
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Condominio {
-  id                      String   @id @default(cuid())
+  id                      String    @id @default(uuid())
   name                    String
   mainAddress             String
   latitude                Float?
   longitude               Float?
-  status                  String
+  status                  String    @default("Activo")
   guardIds                String[]
   geofenceRadius          Int?
-  guardsRequiredDiurno    Int?
-  guardsRequiredNocturno  Int?
+  guardsRequiredDiurno    Int?      @default(1)
+  guardsRequiredNocturno  Int?      @default(1)
   guardMenuSections       String[]
-  addresses               Address[]
-  vehicularRegistrations  VehicularRegistration[]
-  pedestrianRegistrations PedestrianRegistration[]
-  peticiones              Peticion[]
-  bitacoraEntries         BitacoraEntry[]
-  emergencyContacts       EmergencyContact[]
-  commonAreas             CommonArea[]
-  reservations            Reservation[]
-  guestPasses             GuestPass[]
-  visitorNotifications    VisitorNotification[]
-  alertResponses          AlertResponse[]
-  shiftRecords            ShiftRecord[]
-  plannedShifts           PlannedShift[]
-  handoverNotes           HandoverNote[]
-  packages                Package[]
-  workOrders              WorkOrder[]
-  assets                  Asset[]
-  surveys                 Survey[]
-  events                  CommunityEvent[]
-  users                   User[]   @relation("UserCondos")
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 }
 
 model Address {
-  id          String      @id @default(cuid())
-  fullAddress String
-  condominioId String
-  condominio  Condominio  @relation(fields: [condominioId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  fullAddress   String
+  condominioId  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model VehicularRegistration {
-  id                  String   @id @default(cuid())
-  licensePlate        String
-  fullName            String
-  visitorType         String
-  providerType        String?
-  employeeType        String?
-  vehicleType         String
-  vehicleBrand        String
-  vehicleColor        String
-  address             String
-  entryTimestamp      DateTime @default(now())
-  exitTimestamp       DateTime?
-  condominioId        String
-  condominio          Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  visitorIdPhotoUrl   String?
-  vehiclePhotoUrl     String?
+  id                String    @id @default(uuid())
+  licensePlate      String
+  fullName          String
+  visitorType       String
+  providerType      String?
+  employeeType      String?
+  vehicleType       String
+  vehicleBrand      String
+  vehicleColor      String
+  address           String
+  entryTimestamp    DateTime  @default(now())
+  exitTimestamp     DateTime?
+  condominioId      String
+  condominioName    String
+  visitorIdPhotoUrl String?
+  vehiclePhotoUrl   String?
 }
 
 model PedestrianRegistration {
-  id                  String   @id @default(cuid())
-  fullName            String
-  visitorType         String
-  address             String
-  entryTimestamp      DateTime @default(now())
-  exitTimestamp       DateTime?
-  condominioId        String
-  condominio          Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  visitorIdPhotoUrl   String?
+  id                String    @id @default(uuid())
+  fullName          String
+  visitorType       String
+  address           String
+  entryTimestamp    DateTime  @default(now())
+  exitTimestamp     DateTime?
+  condominioId      String
+  condominioName    String
+  visitorIdPhotoUrl String?
 }
 
 model Peticion {
-  id              String            @id @default(cuid())
+  id              String             @id @default(uuid())
   title           String
   description     String
   creatorId       String
-  creator         User              @relation("CreatedPeticiones", fields: [creatorId], references: [id], onDelete: Cascade)
   creatorName     String
   creatorRole     String
   condominioId    String
-  condominio      Condominio        @relation(fields: [condominioId], references: [id], onDelete: Cascade)
   condominioName  String
   status          String
   category        String?
-  createdAt       DateTime          @default(now())
+  createdAt       DateTime           @default(now())
   comments        PeticionComment[]
-  workOrder       WorkOrder?
 }
 
 model PeticionComment {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid())
   authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorName  String
   text        String
   createdAt   DateTime @default(now())
+  peticion    Peticion   @relation(fields: [peticionId], references: [id], onDelete: Cascade)
   peticionId  String
-  peticion    Peticion @relation(fields: [peticionId], references: [id], onDelete: Cascade)
 }
 
 model BitacoraEntry {
-  id          String     @id @default(cuid())
-  condominioId String
-  condominio  Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  authorId    String
-  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorName  String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime?  @updatedAt
-  type        String
-  text        String
-  relatedId   String?
-  photos      String[]
-  category    String?
-  latitude    Float?
-  longitude   Float?
-}
-
-model EmergencyContact {
-  id            String      @id @default(cuid())
-  name          String
-  phone         String
-  description   String?
+  id            String   @id @default(uuid())
   condominioId  String
-  condominio    Condominio  @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-}
-
-model CommonArea {
-  id            String        @id @default(cuid())
-  name          String
-  description   String
-  capacity      Int
-  condominioId  String
-  condominio    Condominio    @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  imageUrl      String?
-  rules         String?
-  cost          Float?
-  openingTime   String?
-  closingTime   String?
-  reservations  Reservation[]
-}
-
-model Reservation {
-  id            String      @id @default(cuid())
-  areaId        String
-  area          CommonArea  @relation(fields: [areaId], references: [id], onDelete: Cascade)
-  areaName      String
-  userId        String
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userName      String
-  date          String
-  startTime     String
-  endTime       String
-  status        String
-  condominioId  String
-  condominio    Condominio  @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  createdAt     DateTime    @default(now())
-}
-
-model GuestPass {
-  id                String    @id @default(cuid())
-  accessType        String
-  guestName         String
-  visitorType       String
-  passType          String
-  validUntil        DateTime?
-  licensePlate      String?
-  vehicleType       String?
-  vehicleBrand      String?
-  vehicleColor      String?
-  visitorIdPhotoUrl String?
-  vehiclePhotoUrl   String?
-  residentId        String
-  resident          User      @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  residentName      String
-  addressId         String
-  address           String
-  condominioId      String
-  condominio        Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  latitude          Float?
-  longitude         Float?
-  createdAt         DateTime  @default(now())
-}
-
-model VisitorNotification {
-  id            String     @id @default(cuid())
-  who           String
-  visitorType   String
-  subject       String
-  residentId    String
-  residentName  String
-  addressId     String
-  address       String
-  condominioId  String
-  condominio    Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  createdAt     DateTime   @default(now())
-  status        String
-}
-
-model AlertResponse {
-  id                  String     @id @default(cuid())
-  guardId             String
-  guard               User       @relation(fields: [guardId], references: [id], onDelete: Cascade)
-  guardName           String
-  condominioId        String
-  condominio          Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  createdAt           DateTime   @default(now())
-  responseTimeSeconds Int
-  selfiePhotoUrl      String
-  environmentPhotoUrl String
-  comment             String
+  authorId      String
+  authorName    String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime? @updatedAt
+  type          String
+  text          String
+  relatedId     String?
+  photos        String[]
+  category      String?
+  latitude      Float?
+  longitude     Float?
 }
 
 model ShiftRecord {
-  id              String     @id @default(cuid())
+  id              String    @id @default(uuid())
   guardId         String
-  guard           User       @relation(fields: [guardId], references: [id], onDelete: Cascade)
   guardName       String
   condominioId    String
-  condominio      Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
   condominioName  String
   turno           String
-  startTime       DateTime   @default(now())
+  startTime       DateTime  @default(now())
   endTime         DateTime?
   equipmentIds    String[]
   handoverNotes   String?
   incident        String?
 }
 
-model PlannedShift {
-  id           String     @id @default(cuid())
-  date         String
-  condominioId String
-  condominio   Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  turno        String
-  slot         Int
-  guardId      String?
-}
-
-model HandoverNote {
-  id           String     @id @default(cuid())
-  condominioId String
-  condominio   Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  authorId     String
-  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorName   String
-  notes        String
-  createdAt    DateTime   @default(now())
-}
-
-model Loan {
-  id           String         @id @default(cuid())
-  guardId      String
-  guard        User           @relation("CreatedLoans", fields: [guardId], references: [id], onDelete: Cascade)
-  guardName    String
-  amount       Float
-  reason       String
-  interestRate Float
-  totalOwed    Float
-  balance      Float
-  status       String
-  requestedAt  DateTime       @default(now())
-  approvedAt   DateTime?
-  payments     Json
-}
-
-model Comunicado {
-  id          String   @id @default(cuid())
-  subject     String
-  message     String
-  target      String
-  targetName  String
-  channels    String[]
-  createdAt   DateTime @default(now())
-}
-
-model WorkOrder {
-  id           String      @id @default(cuid())
-  title        String
-  description  String
-  peticionId   String?     @unique
-  peticion     Peticion?   @relation(fields: [peticionId], references: [id])
-  condominioId String
-  condominio   Condominio  @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  address      String
-  status       String
-  assignedTo   String?
-  createdAt    DateTime    @default(now())
-  completedAt  DateTime?
-  cost         Float?
-}
-
-model Asset {
-  id                  String     @id @default(cuid())
-  name                String
-  category            String
-  location            String
-  condominioId        String
-  condominio          Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  purchaseDate        DateTime?
-  lastMaintenanceDate DateTime?
-  nextMaintenanceDate DateTime?
-  status              String
-}
-
-model Survey {
-  id           String     @id @default(cuid())
-  title        String
-  description  String
-  condominioId String
-  condominio   Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  options      Json
-  createdAt    DateTime   @default(now())
-  closesAt     DateTime
-  status       String
-}
-
-model CommunityEvent {
-  id           String     @id @default(cuid())
-  title        String
-  description  String
-  condominioId String
-  condominio   Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  start        DateTime
-  end          DateTime
-  isAllDay     Boolean
-  location     String?
-}
-
-model ChatMessage {
-  id         String   @id @default(cuid())
-  authorId   String
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorName String
-  text       String
-  createdAt  DateTime @default(now())
-}
-
-model DirectMessage {
-  id             String       @id @default(cuid())
-  authorId       String
-  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  authorName     String
-  text           String
-  createdAt      DateTime     @default(now())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-}
-
-model Conversation {
-  id              String          @id @default(cuid())
-  participantIds  String[]
-  participantNames String[]
-  messages        DirectMessage[]
-  lastMessageAt   DateTime        @default(now())
-}
-
-model ArchivedPayroll {
-    id          String   @id @default(cuid())
-    period      Json
-    payrollData Json
-    totals      Json
-    archivedAt  DateTime @default(now())
-}
-
-model ManagedList {
-    id       String @id @default(cuid())
-    list_key String
-    value    String
-    
-    @@unique([list_key, value])
-}
-
-// Modelos que no se relacionan directamente con la BD principal
-// porque se gestionan en sessionStorage, pero se dejan para referencia
-// Package
-// Transaction
-
 model Package {
-  id                   String     @id @default(cuid())
-  recipientAddressId   String
-  recipientAddress     String
-  recipientName        String
-  trackingNumber       String?
-  courierName          String
-  courierCompany       String
-  status               String
-  receivedAt           DateTime   @default(now())
-  deliveredAt          DateTime?
-  receivedByGuardId    String
-  receivedByGuardName  String
-  deliveredToName      String?
-  condominioId         String
-  condominio           Condominio @relation(fields: [condominioId], references: [id], onDelete: Cascade)
-  damageNotes          String?
-  deliveryPhotoUrl     String?
-  deliverySignatureUrl String?
-}
-
-model Transaction {
-  id          String   @id @default(cuid())
-  date        DateTime @default(now())
-  type        String
-  concept     String
-  amount      Float
-  residentId  String
+  id                    String   @id @default(uuid())
+  recipientAddressId    String
+  recipientAddress      String
+  recipientName         String
+  trackingNumber        String?
+  courierName           String
+  courierCompany        String
+  status                String
+  receivedAt            DateTime @default(now())
+  deliveredAt           DateTime?
+  receivedByGuardId     String
+  receivedByGuardName   String
+  deliveredToName       String?
+  condominioId          String
+  damageNotes           String?
+  deliveryPhotoUrl      String?
+  deliverySignatureUrl  String?
 }
