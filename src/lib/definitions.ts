@@ -1,5 +1,4 @@
 
-
 export type UserRole = 'Administrador' | 'Propietario' | 'Renta' | 'Guardia' | 'Adm. Condo';
 
 export interface VehicleInfo {
@@ -19,18 +18,15 @@ export interface User {
     password?: string;
     role: UserRole;
     photoUrl?: string;
-    // Single assignments for roles like Guardia, Renta
     condominioId?: string; 
     addressId?: string;
-    // Multiple assignments for Propietario
-    condominioIds?: string[];
-    addressIds?: string[];
+    condominioIds?: string; // Stored as comma-separated string
+    addressIds?: string; // Stored as comma-separated string
     vehicles?: VehicleInfo[];
     dailySalary?: number;
     allowRemoteCheckIn?: boolean;
     loanLimit?: number;
     interestRate?: number;
-    // New fields for Renta
     leaseStartDate?: string;
     leaseEndDate?: string;
     numberOfInhabitants?: number;
@@ -46,7 +42,7 @@ export interface Condominio {
     latitude?: number;
     longitude?: number;
     status: 'Activo' | 'Suspendido';
-    guardIds?: string[];
+    guardIds?: string; // Stored as comma-separated string
     geofenceRadius?: number;
     guardsRequiredDiurno?: number;
     guardsRequiredNocturno?: number;
@@ -342,15 +338,9 @@ export interface PayrollData {
 
 export interface ArchivedPayroll {
     id: string;
-    period: { from: string; to: string };
-    payrollData: PayrollData[];
-    totals: {
-        subtotal: number;
-        bonuses: number;
-        penalties: number;
-        loanDeductions: number;
-        total: number;
-    };
+    period: string; // Stored as JSON string
+    payrollData: string; // Stored as JSON string
+    totals: string; // Stored as JSON string
     archivedAt: string;
 }
 

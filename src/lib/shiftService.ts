@@ -1,4 +1,3 @@
-
 "use server";
 
 import prisma from './prisma';
@@ -74,7 +73,7 @@ export async function startShift(guardId: string, guardName: string, turnoInfo: 
             condominioId: turnoInfo.condominioId,
             condominioName: turnoInfo.condominioName,
             turno: turnoInfo.turno,
-            equipmentIds: turnoInfo.equipmentIds ? turnoInfo.equipmentIds : undefined,
+            equipmentIds: Array.isArray(turnoInfo.equipmentIds) ? turnoInfo.equipmentIds.join(',') : undefined,
             startTime: new Date(),
         }
         const newRecord = await prisma.shiftRecord.create({
@@ -110,7 +109,7 @@ export async function updateShiftIncident(shiftId: string, incident: ShiftIncide
     try {
         const updatedRecord = await prisma.shiftRecord.update({
             where: { id: shiftId },
-            data: { incident },
+            data: { incident: incident ?? undefined },
         });
         return JSON.parse(JSON.stringify(updatedRecord));
     } catch (error) {

@@ -1,4 +1,3 @@
-
 "use server";
 
 import prisma from './prisma';
@@ -13,6 +12,7 @@ export async function getCondominios(): Promise<Condominio[]> {
         const processedCondominios = condominios.map(condo => ({
             ...condo,
             guardMenuSections: condo.guardMenuSections ? condo.guardMenuSections.split(',') : [],
+            guardIds: condo.guardIds ? condo.guardIds.split(',') : [],
         }));
         return JSON.parse(JSON.stringify(processedCondominios));
     } catch (error) {
@@ -31,6 +31,7 @@ export async function getCondominioById(id: string): Promise<Condominio | null> 
         const processedCondominio = {
             ...condominio,
             guardMenuSections: condominio.guardMenuSections ? condominio.guardMenuSections.split(',') : [],
+            guardIds: condominio.guardIds ? condominio.guardIds.split(',') : [],
         };
         return JSON.parse(JSON.stringify(processedCondominio));
     } catch (error) {
@@ -44,6 +45,7 @@ export async function addCondominio(condoData: Partial<Omit<Condominio, 'id'>>):
         const dataToSave: any = {
             ...condoData,
             guardMenuSections: Array.isArray(condoData.guardMenuSections) ? condoData.guardMenuSections.join(',') : undefined,
+            guardIds: Array.isArray(condoData.guardIds) ? condoData.guardIds.join(',') : undefined,
         };
         const newCondo = await prisma.condominio.create({
             data: dataToSave,
@@ -60,6 +62,7 @@ export async function updateCondominio(id: string, updates: Partial<Omit<Condomi
         const dataToUpdate: any = {
             ...updates,
             guardMenuSections: Array.isArray(updates.guardMenuSections) ? updates.guardMenuSections.join(',') : undefined,
+            guardIds: Array.isArray(updates.guardIds) ? updates.guardIds.join(',') : undefined,
         };
         const updatedCondo = await prisma.condominio.update({
             where: { id },

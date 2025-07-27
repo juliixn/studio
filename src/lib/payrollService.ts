@@ -1,4 +1,3 @@
-
 "use server";
 
 import prisma from './prisma';
@@ -12,12 +11,11 @@ export async function getArchivedPayrolls(): Promise<ArchivedPayroll[]> {
 
         const processedPayrolls = payrolls.map(p => ({
             ...p,
-            period: JSON.parse(p.periodFrom), // Assuming periodFrom stores the whole period object
-            payrollData: JSON.parse(p.payrollData),
-            totals: JSON.parse(p.totals),
+            period: JSON.parse(p.period as string),
+            payrollData: JSON.parse(p.payrollData as string),
+            totals: JSON.parse(p.totals as string),
         }));
         
-        // A temporary fix for the schema change
         const typedPayrolls = processedPayrolls.map(p => ({
             id: p.id,
             archivedAt: p.archivedAt.toISOString(),
@@ -41,8 +39,7 @@ export async function archivePayroll(payroll: Omit<ArchivedPayroll, 'id' | 'arch
     try {
         const newArchive = await prisma.archivedPayroll.create({
             data: {
-                periodFrom: JSON.stringify(payroll.period),
-                periodTo: new Date().toISOString(), // This seems incorrect based on schema, but matching old logic
+                period: JSON.stringify(payroll.period),
                 payrollData: JSON.stringify(payroll.payrollData),
                 totals: JSON.stringify(payroll.totals),
             },

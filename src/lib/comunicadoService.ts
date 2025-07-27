@@ -1,4 +1,3 @@
-
 "use server";
 
 import prisma from './prisma';
@@ -23,7 +22,7 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
         
         const processedComs = comunicados.map(c => ({
             ...c,
-            channels: c.channels ? (c.channels as unknown as string).split(',') : []
+            channels: c.channels ? c.channels.split(',') : []
         }))
 
         return JSON.parse(JSON.stringify(processedComs));

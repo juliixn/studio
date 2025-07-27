@@ -1,4 +1,3 @@
-
 "use server";
 
 import prisma from './prisma';
@@ -12,7 +11,7 @@ export async function getUsers(): Promise<User[]> {
             ...user,
             condominioIds: user.condominioIds ? (user.condominioIds as unknown as string).split(',').filter(Boolean) : [],
             addressIds: user.addressIds ? (user.addressIds as unknown as string).split(',').filter(Boolean) : [],
-            inhabitantNames: user.inhabitantNames ? (user.inhabitantNames as unknown as string).split(',').filter(Boolean) : [],
+            inhabitantNames: user.inhabitantNames ? user.inhabitantNames.split(',').filter(Boolean) : [],
         }));
         return JSON.parse(JSON.stringify(processedUsers));
     } catch (error) {
@@ -32,7 +31,7 @@ export async function getUserById(userId: string): Promise<User | null> {
             ...user,
             condominioIds: user.condominioIds ? (user.condominioIds as unknown as string).split(',').filter(Boolean) : [],
             addressIds: user.addressIds ? (user.addressIds as unknown as string).split(',').filter(Boolean) : [],
-            inhabitantNames: user.inhabitantNames ? (user.inhabitantNames as unknown as string).split(',').filter(Boolean) : [],
+            inhabitantNames: user.inhabitantNames ? user.inhabitantNames.split(',').filter(Boolean) : [],
         };
         return JSON.parse(JSON.stringify(processedUser));
     } catch (error) {
@@ -48,7 +47,7 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
             // Convert arrays to comma-separated strings before saving
             condominioIds: Array.isArray(userData.condominioIds) ? userData.condominioIds.join(',') : undefined,
             addressIds: Array.isArray(userData.addressIds) ? userData.addressIds.join(',') : undefined,
-            inhabitantNames: Array.isArray(userData.inhabitantNames) ? userData.inhabitantNames.join(',') : undefined,
+            inhabitantNames: Array.isArray(userData.inhabitantNames) ? userData.inhabitantNames.join(',') : userData.inhabitantNames,
         };
 
         const newUser = await prisma.user.create({
@@ -68,7 +67,7 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
             // Convert arrays to comma-separated strings before saving
             condominioIds: Array.isArray(updates.condominioIds) ? updates.condominioIds.join(',') : undefined,
             addressIds: Array.isArray(updates.addressIds) ? updates.addressIds.join(',') : undefined,
-            inhabitantNames: Array.isArray(updates.inhabitantNames) ? updates.inhabitantNames.join(',') : undefined,
+            inhabitantNames: Array.isArray(updates.inhabitantNames) ? updates.inhabitantNames.join(',') : updates.inhabitantNames,
         };
 
         const updatedUser = await prisma.user.update({

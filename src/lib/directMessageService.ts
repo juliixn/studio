@@ -1,4 +1,3 @@
-
 "use server";
 
 import prisma from './prisma';
@@ -59,6 +58,8 @@ export async function addDirectMessage(author: User, recipient: User, text: stri
             },
             create: {
                 id: conversationId,
+                participantIds: [author.id, recipient.id].join(','),
+                participantNames: [author.name, recipient.name].join(','),
                 participants: {
                     connect: [{ id: author.id }, { id: recipient.id }]
                 },
