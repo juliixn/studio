@@ -45,6 +45,8 @@ model VehicleInfo {
   type          String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Condominio {
@@ -125,6 +127,8 @@ model PeticionComment {
   createdAt   DateTime @default(now())
   peticion    Peticion   @relation(fields: [peticionId], references: [id], onDelete: Cascade)
   peticionId  String
+
+  @@index([peticionId])
 }
 
 model BitacoraEntry {
