@@ -1,87 +1,48 @@
 
+"use server";
 
-"use client";
-
-import { mockGuestPasses as initialPasses } from './data';
+import prisma from './prisma';
 import type { GuestPass } from './definitions';
-import { addDays, addMonths, addYears } from 'date-fns';
+import { addDays, addMonths, addYears, isAfter } from 'date-fns';
 
-const STORAGE_KEY = 'guestPasses-v5';
-
-function getFromStorage(): GuestPass[] {
-    if (typeof window === 'undefined') {
-        return initialPasses;
-    }
+export async function getGuestPasses(condominioId?: string, residentId?: string): Promise<GuestPass[]> {
     try {
-        const storedData = sessionStorage.getItem(STORAGE_KEY);
-        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
-            return JSON.parse(storedData);
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
         }
+        if (residentId) {
+            whereClause.residentId = residentId;
+        }
+        const passes = await prisma.guestPass.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'desc' },
+        });
+        return JSON.parse(JSON.stringify(passes));
     } catch (error) {
-        console.error(`Failed to parse from sessionStorage key "${STORAGE_KEY}", re-initializing.`, error);
-    }
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(initialPasses));
-    return initialPasses;
-}
-
-function saveToStorage(passes: GuestPass[]) {
-    if (typeof window !== 'undefined') {
-        const sorted = passes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+        console.error("Error fetching guest passes:", error);
+        return [];
     }
 }
 
-export function getGuestPasses(condominioId?: string, residentId?: string): GuestPass[] {
-    let allPasses = getFromStorage();
-    
-    if (condominioId) {
-        allPasses = allPasses.filter(p => p.condominioId === condominioId);
-    }
+export async function getGuestPassById(passId: string): Promise<GuestPass | null> {
+    try {
+        const pass = await prisma.guestPass.findUnique({
+            where: { id: passId },
+        });
+        
+        if (!pass) return null;
 
-    if (residentId) {
-        allPasses = allPasses.filter(p => p.residentId === residentId);
-    }
-
-    return allPasses;
-}
-
-export function getGuestPassById(passId: string): GuestPass | undefined {
-    const allPasses = getFromStorage();
-    const pass = allPasses.find(p => p.id === passId);
-
-    // Case 1: Pass does not exist at all.
-    if (!pass) {
-        console.error(`[getGuestPassById] Pass with ID ${passId} not found.`);
-        return undefined;
-    }
-
-    // Case 2: Pass is permanent. It's always valid.
-    if (pass.passType === 'permanent') {
-        return pass;
-    }
-
-    // Case 3: Pass is temporal. We must check the expiration date.
-    if (pass.passType === 'temporal') {
-        // Subcase 3a: Temporal pass is missing an expiration date. This is an invalid state.
-        if (!pass.validUntil) {
-            console.error(`[getGuestPassById] Temporal pass ${passId} is missing an expiration date.`);
-            return undefined;
+        if (pass.passType === 'temporal' && pass.validUntil && isAfter(new Date(), new Date(pass.validUntil))) {
+            // Pass has expired
+            return null;
         }
-
-        // Subcase 3b: Check if the current date is at or after the expiration date.
-        const isExpired = new Date() >= new Date(pass.validUntil);
-        if (isExpired) {
-            console.warn(`[getGuestPassById] Pass ${passId} is expired. Valid until: ${pass.validUntil}`);
-            return undefined;
-        }
-
-        // If not expired, it's valid.
-        return pass;
+        
+        return JSON.parse(JSON.stringify(pass));
+    } catch (error) {
+        console.error(`Error fetching guest pass ${passId}:`, error);
+        return null;
     }
-    
-    // Case 4: The pass has an unknown passType. Treat as invalid.
-    console.error(`[getGuestPassById] Pass ${passId} has an unknown passType: ${pass.passType}`);
-    return undefined;
 }
 
 type AddPassPayload = Omit<GuestPass, 'id' | 'createdAt' | 'validUntil'> & {
@@ -89,39 +50,47 @@ type AddPassPayload = Omit<GuestPass, 'id' | 'createdAt' | 'validUntil'> & {
     durationUnit?: 'days' | 'months' | 'years';
 };
 
-export function addGuestPass(payload: AddPassPayload): GuestPass {
-    const allPasses = getFromStorage();
-    
-    let validUntil: string | null = null;
-    if (payload.passType === 'temporal' && payload.durationValue && payload.durationUnit) {
-        const now = new Date();
-        switch (payload.durationUnit) {
-            case 'days':
-                validUntil = addDays(now, payload.durationValue).toISOString();
-                break;
-            case 'months':
-                validUntil = addMonths(now, payload.durationValue).toISOString();
-                break;
-            case 'years':
-                validUntil = addYears(now, payload.durationValue).toISOString();
-                break;
+export async function addGuestPass(payload: AddPassPayload): Promise<GuestPass | null> {
+    try {
+        let validUntil: string | null = null;
+        if (payload.passType === 'temporal' && payload.durationValue && payload.durationUnit) {
+            const now = new Date();
+            switch (payload.durationUnit) {
+                case 'days':
+                    validUntil = addDays(now, payload.durationValue).toISOString();
+                    break;
+                case 'months':
+                    validUntil = addMonths(now, payload.durationValue).toISOString();
+                    break;
+                case 'years':
+                    validUntil = addYears(now, payload.durationValue).toISOString();
+                    break;
+            }
         }
+        
+        const { durationValue, durationUnit, ...restOfPayload } = payload;
+        
+        const newPass = await prisma.guestPass.create({
+            data: {
+                ...restOfPayload,
+                validUntil,
+            },
+        });
+        return JSON.parse(JSON.stringify(newPass));
+    } catch (error) {
+        console.error("Error adding guest pass:", error);
+        return null;
     }
-
-    const newPass: GuestPass = {
-        ...payload,
-        id: `gp${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        validUntil: validUntil,
-    };
-    
-    const updatedPasses = [newPass, ...allPasses];
-    saveToStorage(updatedPasses);
-    return newPass;
 }
 
-export function deleteGuestPass(passId: string) {
-    const allPasses = getFromStorage();
-    const updatedPasses = allPasses.filter(p => p.id !== passId);
-    saveToStorage(updatedPasses);
+export async function deleteGuestPass(passId: string): Promise<boolean> {
+    try {
+        await prisma.guestPass.delete({
+            where: { id: passId },
+        });
+        return true;
+    } catch (error) {
+        console.error(`Error deleting guest pass ${passId}:`, error);
+        return false;
+    }
 }

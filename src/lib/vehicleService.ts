@@ -6,11 +6,10 @@ import type { VehicleInfo } from './definitions';
 
 export async function getUserVehicles(userId: string): Promise<VehicleInfo[]> {
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            include: { vehicles: true },
+        const vehicles = await prisma.vehicle.findMany({
+            where: { userId: userId },
         });
-        return user ? JSON.parse(JSON.stringify(user.vehicles)) : [];
+        return JSON.parse(JSON.stringify(vehicles));
     } catch (error) {
         console.error(`Error fetching vehicles for user ${userId}:`, error);
         return [];

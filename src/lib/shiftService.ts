@@ -1,98 +1,105 @@
 
-"use client";
+"use server";
 
-import { mockShiftRecords as initialData } from './data';
+import prisma from './prisma';
 import type { ShiftRecord, TurnoInfo, ShiftIncidentType } from './definitions';
 
-const STORAGE_KEY = 'shiftRecords-v4';
-
-function getFromStorage(): ShiftRecord[] {
-    if (typeof window === 'undefined') {
-        return initialData;
-    }
+export async function getShiftRecords(guardId?: string): Promise<ShiftRecord[]> {
     try {
-        const storedData = sessionStorage.getItem(STORAGE_KEY);
-        // Robust check for stored data
-        if (storedData && storedData !== 'undefined' && storedData !== 'null') {
-            return JSON.parse(storedData);
+        const whereClause: any = {};
+        if (guardId) {
+            whereClause.guardId = guardId;
         }
+        const records = await prisma.shiftRecord.findMany({
+            where: whereClause,
+            orderBy: { startTime: 'desc' },
+        });
+        return JSON.parse(JSON.stringify(records));
     } catch (error) {
-        console.error(`Failed to parse from sessionStorage key "${STORAGE_KEY}", re-initializing.`, error);
-    }
-    // If no valid data, initialize with mock data
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-    return initialData;
-}
-
-function saveToStorage(records: ShiftRecord[]) {
-    if (typeof window !== 'undefined') {
-        const sorted = records.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+        console.error("Error fetching shift records:", error);
+        return [];
     }
 }
 
-export function getShiftRecords(guardId?: string): ShiftRecord[] {
-    let allRecords = getFromStorage();
-    if (guardId) {
-        allRecords = allRecords.filter(r => r.guardId === guardId);
+export async function getActiveShiftForGuard(guardId: string): Promise<ShiftRecord | null> {
+    try {
+        const activeShift = await prisma.shiftRecord.findFirst({
+            where: {
+                guardId: guardId,
+                endTime: null,
+            },
+        });
+        return activeShift ? JSON.parse(JSON.stringify(activeShift)) : null;
+    } catch (error) {
+        console.error(`Error fetching active shift for guard ${guardId}:`, error);
+        return null;
     }
-    return allRecords;
 }
 
-export function getActiveShiftForGuard(guardId: string): ShiftRecord | null {
-    const allRecords = getFromStorage();
-    const activeShift = allRecords.find(r => r.guardId === guardId && !r.endTime);
-    return activeShift || null;
-}
-
-export function getActiveShifts(condominioId?: string): ShiftRecord[] {
-    const allRecords = getFromStorage();
-    let activeShifts = allRecords.filter(r => !r.endTime);
-    if(condominioId) {
-        activeShifts = activeShifts.filter(s => s.condominioId === condominioId);
-    }
-    return activeShifts;
-}
-
-
-export function startShift(guardId: string, guardName: string, turnoInfo: TurnoInfo): ShiftRecord {
-    const allRecords = getFromStorage();
-    const newRecord: ShiftRecord = {
-        id: `shift-${Date.now()}`,
-        guardId,
-        guardName,
-        condominioId: turnoInfo.condominioId,
-        condominioName: turnoInfo.condominioName,
-        turno: turnoInfo.turno,
-        startTime: new Date().toISOString(),
-        equipmentIds: turnoInfo.equipmentIds,
-    };
-    const updatedRecords = [newRecord, ...allRecords];
-    saveToStorage(updatedRecords);
-    return newRecord;
-}
-
-export function endShift(shiftId: string, handoverNotes?: string): ShiftRecord | null {
-    const allRecords = getFromStorage();
-    const index = allRecords.findIndex(r => r.id === shiftId);
-    if (index !== -1) {
-        allRecords[index].endTime = new Date().toISOString();
-        if (handoverNotes && handoverNotes.trim()) {
-            allRecords[index].handoverNotes = handoverNotes;
+export async function getActiveShifts(condominioId?: string): Promise<ShiftRecord[]> {
+    try {
+        const whereClause: any = { endTime: null };
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
         }
-        saveToStorage(allRecords);
-        return allRecords[index];
+        const activeShifts = await prisma.shiftRecord.findMany({
+            where: whereClause,
+        });
+        return JSON.parse(JSON.stringify(activeShifts));
+    } catch (error) {
+        console.error("Error fetching active shifts:", error);
+        return [];
     }
-    return null;
 }
 
-export function updateShiftIncident(shiftId: string, incident: ShiftIncidentType | null): ShiftRecord | null {
-    const allRecords = getFromStorage();
-    const index = allRecords.findIndex(r => r.id === shiftId);
-    if (index !== -1) {
-        allRecords[index].incident = incident;
-        saveToStorage(allRecords);
-        return allRecords[index];
+export async function startShift(guardId: string, guardName: string, turnoInfo: TurnoInfo): Promise<ShiftRecord | null> {
+    try {
+        const newRecord = await prisma.shiftRecord.create({
+            data: {
+                guardId,
+                guardName,
+                condominioId: turnoInfo.condominioId,
+                condominioName: turnoInfo.condominioName,
+                turno: turnoInfo.turno,
+                equipmentIds: turnoInfo.equipmentIds,
+                startTime: new Date(),
+            },
+        });
+        return JSON.parse(JSON.stringify(newRecord));
+    } catch (error) {
+        console.error("Error starting shift:", error);
+        return null;
     }
-    return null;
+}
+
+export async function endShift(shiftId: string, handoverNotes?: string): Promise<ShiftRecord | null> {
+    try {
+        const dataToUpdate: { endTime: Date; handoverNotes?: string } = {
+            endTime: new Date(),
+        };
+        if (handoverNotes && handoverNotes.trim()) {
+            dataToUpdate.handoverNotes = handoverNotes;
+        }
+        const updatedRecord = await prisma.shiftRecord.update({
+            where: { id: shiftId },
+            data: dataToUpdate,
+        });
+        return JSON.parse(JSON.stringify(updatedRecord));
+    } catch (error) {
+        console.error(`Error ending shift ${shiftId}:`, error);
+        return null;
+    }
+}
+
+export async function updateShiftIncident(shiftId: string, incident: ShiftIncidentType | null): Promise<ShiftRecord | null> {
+    try {
+        const updatedRecord = await prisma.shiftRecord.update({
+            where: { id: shiftId },
+            data: { incident },
+        });
+        return JSON.parse(JSON.stringify(updatedRecord));
+    } catch (error) {
+        console.error(`Error updating shift incident for ${shiftId}:`, error);
+        return null;
+    }
 }

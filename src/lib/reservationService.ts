@@ -1,109 +1,110 @@
 
-"use client";
+"use server";
 
-import { mockReservations as initialReservations, mockCommonAreas as initialAreas } from './data';
+import prisma from './prisma';
 import type { Reservation, ReservationStatus, CommonArea } from './definitions';
 
-const RESERVATION_KEY = 'reservations-v5';
-const AREA_KEY = 'commonAreas-v5';
-
-// Common Area Service
-function getAreasFromStorage(): CommonArea[] {
-    if (typeof window === 'undefined') return initialAreas;
+// --- Common Area Service ---
+export async function getCommonAreas(condominioId?: string): Promise<CommonArea[]> {
     try {
-        const stored = sessionStorage.getItem(AREA_KEY);
-        if (stored && stored !== 'undefined' && stored !== 'null') {
-            return JSON.parse(stored);
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
         }
+        const areas = await prisma.commonArea.findMany({
+            where: whereClause,
+            orderBy: { name: 'asc' },
+        });
+        return JSON.parse(JSON.stringify(areas));
     } catch (error) {
-        console.error(`Failed to parse from sessionStorage key "${AREA_KEY}", re-initializing.`, error);
-    }
-    sessionStorage.setItem(AREA_KEY, JSON.stringify(initialAreas));
-    return initialAreas;
-}
-
-function saveAreasToStorage(areas: CommonArea[]) {
-    if (typeof window !== 'undefined') {
-        sessionStorage.setItem(AREA_KEY, JSON.stringify(areas));
+        console.error("Error fetching common areas:", error);
+        return [];
     }
 }
 
-export function getCommonAreas(condominioId?: string): CommonArea[] {
-    const areas = getAreasFromStorage();
-    return condominioId ? areas.filter(a => a.condominioId === condominioId) : areas;
-}
-
-export function addCommonArea(area: Omit<CommonArea, 'id'>): CommonArea {
-    const areas = getAreasFromStorage();
-    const newArea: CommonArea = { ...area, id: `ca${Date.now()}` };
-    saveAreasToStorage([newArea, ...areas]);
-    return newArea;
-}
-
-export function updateCommonArea(areaId: string, payload: Partial<Omit<CommonArea, 'id'>>) {
-    const areas = getAreasFromStorage();
-    const index = areas.findIndex(a => a.id === areaId);
-    if (index !== -1) {
-        areas[index] = { ...areas[index], ...payload };
-        saveAreasToStorage(areas);
-    }
-}
-
-export function deleteCommonArea(areaId: string) {
-    const areas = getAreasFromStorage();
-    saveAreasToStorage(areas.filter(a => a.id !== areaId));
-}
-
-// Reservation Service
-function getReservationsFromStorage(): Reservation[] {
-    if (typeof window === 'undefined') return initialReservations;
+export async function addCommonArea(area: Omit<CommonArea, 'id'>): Promise<CommonArea | null> {
     try {
-        const stored = sessionStorage.getItem(RESERVATION_KEY);
-        if (stored && stored !== 'undefined' && stored !== 'null') {
-            return JSON.parse(stored);
-        }
+        const newArea = await prisma.commonArea.create({
+            data: area,
+        });
+        return JSON.parse(JSON.stringify(newArea));
     } catch (error) {
-        console.error(`Failed to parse from sessionStorage key "${RESERVATION_KEY}", re-initializing.`, error);
-    }
-    sessionStorage.setItem(RESERVATION_KEY, JSON.stringify(initialReservations));
-    return initialReservations;
-}
-
-function saveReservationsToStorage(reservations: Reservation[]) {
-    if (typeof window !== 'undefined') {
-        const sorted = reservations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        sessionStorage.setItem(RESERVATION_KEY, JSON.stringify(sorted));
+        console.error("Error adding common area:", error);
+        return null;
     }
 }
 
-export function getReservations(condominioId?: string, userId?: string): Reservation[] {
-    let reservations = getReservationsFromStorage();
-    if (condominioId) {
-        reservations = reservations.filter(r => r.condominioId === condominioId);
+export async function updateCommonArea(areaId: string, payload: Partial<Omit<CommonArea, 'id'>>): Promise<CommonArea | null> {
+     try {
+        const updatedArea = await prisma.commonArea.update({
+            where: { id: areaId },
+            data: payload,
+        });
+        return JSON.parse(JSON.stringify(updatedArea));
+    } catch (error) {
+        console.error(`Error updating common area ${areaId}:`, error);
+        return null;
     }
-    if (userId) {
-        reservations = reservations.filter(r => r.userId === userId);
-    }
-    return reservations;
 }
 
-export function addReservation(res: Omit<Reservation, 'id' | 'status' | 'createdAt'>): Reservation {
-    const reservations = getReservationsFromStorage();
-    const newReservation: Reservation = {
-        ...res,
-        id: `res${Date.now()}`,
-        status: 'Pendiente',
-        createdAt: new Date().toISOString(),
-    };
-    saveReservationsToStorage([newReservation, ...reservations]);
-    return newReservation;
+export async function deleteCommonArea(areaId: string): Promise<boolean> {
+    try {
+        await prisma.commonArea.delete({
+            where: { id: areaId },
+        });
+        return true;
+    } catch (error) {
+        console.error(`Error deleting common area ${areaId}:`, error);
+        return false;
+    }
 }
 
-export function updateReservationStatus(reservationId: string, status: ReservationStatus) {
-    const reservations = getReservationsFromStorage();
-    const index = reservations.findIndex(r => r.id === reservationId);
-    if (index !== -1) {
-        reservations[index].status = status;
-        saveReservationsToStorage(reservations);
+
+// --- Reservation Service ---
+export async function getReservations(condominioId?: string, userId?: string): Promise<Reservation[]> {
+    try {
+        const whereClause: any = {};
+        if (condominioId) {
+            whereClause.condominioId = condominioId;
+        }
+        if (userId) {
+            whereClause.userId = userId;
+        }
+        const reservations = await prisma.reservation.findMany({
+            where: whereClause,
+            orderBy: { createdAt: 'desc' },
+        });
+        return JSON.parse(JSON.stringify(reservations));
+    } catch (error) {
+        console.error("Error fetching reservations:", error);
+        return [];
+    }
+}
+
+export async function addReservation(res: Omit<Reservation, 'id' | 'status' | 'createdAt'>): Promise<Reservation | null> {
+    try {
+        const newReservation = await prisma.reservation.create({
+            data: {
+                ...res,
+                status: 'Pendiente',
+            },
+        });
+        return JSON.parse(JSON.stringify(newReservation));
+    } catch (error) {
+        console.error("Error adding reservation:", error);
+        return null;
+    }
+}
+
+export async function updateReservationStatus(reservationId: string, status: ReservationStatus): Promise<Reservation | null> {
+    try {
+        const updatedReservation = await prisma.reservation.update({
+            where: { id: reservationId },
+            data: { status },
+        });
+        return JSON.parse(JSON.stringify(updatedReservation));
+    } catch (error) {
+        console.error(`Error updating reservation status for ${reservationId}:`, error);
+        return null;
     }
 }
