@@ -7,6 +7,8 @@
   packages = [
     pkgs.nodejs_20
     pkgs.zulu
+    pkgs.openssl
+    pkgs.prisma
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -40,4 +42,8 @@
       };
     };
   };
+
+  enterShell = ''
+    npm install
+  '';
 }
