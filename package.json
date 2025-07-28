@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx src/lib/seed-firebase.ts"
+    "seed": "tsx src/lib/seed-firebase.ts",
+    "deploy": "firebase deploy --only hosting"
   },
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
@@ -63,6 +64,7 @@
     "@types/papaparse": "^5.3.14",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "firebase-tools": "^13.14.2",
     "leaflet": "^1.9.4",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
