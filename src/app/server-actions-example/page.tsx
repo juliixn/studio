@@ -1,14 +1,16 @@
-import { getPosts, deletePost, updatePost, getLikes } from './actions';
+import { getPosts, deletePost, updatePost, getLikes, getViews } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
 import { CreatePostForm } from '@/components/server-actions-example/create-post-form';
 import { UpdatePostForm } from '@/components/server-actions-example/update-post-form';
 import LikeButton from '@/components/server-actions-example/like-button';
+import ViewCount from '@/components/server-actions-example/view-count';
 
 export default async function ServerActionsExamplePage() {
   const posts = await getPosts();
   const initialLikes = await getLikes();
+  const initialViews = await getViews();
 
   return (
     <div className="container mx-auto p-4 space-y-8">
@@ -19,17 +21,31 @@ export default async function ServerActionsExamplePage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-            <CardTitle>Me Gusta (Optimistic UI)</CardTitle>
-            <CardDescription>
-                Este botón actualiza su estado del lado del cliente después de que la Server Action se completa.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <LikeButton initialLikes={initialLikes} />
-        </CardContent>
-      </Card>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <Card>
+            <CardHeader>
+                <CardTitle>Me Gusta (Actualización Simple)</CardTitle>
+                <CardDescription>
+                    Este botón actualiza su estado del lado del cliente después de que la Server Action se completa.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <LikeButton initialLikes={initialLikes} />
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+                <CardTitle>Vistas (useTransition)</CardTitle>
+                <CardDescription>
+                    Este componente invoca una Server Action al cargarse, utilizando `useTransition` para mostrar un estado de carga.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ViewCount initialViews={initialViews} />
+            </CardContent>
+          </Card>
+      </div>
+
 
       <CreatePostForm />
 

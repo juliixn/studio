@@ -9,6 +9,7 @@ let posts = [
   { id: '2', title: 'Post de Ejemplo 2', content: 'Este es el contenido del segundo post.' },
 ];
 let likes = 0;
+let views = 1000;
 
 export async function getPosts() {
   return posts;
@@ -69,4 +70,14 @@ export async function incrementLike() {
     likes += 1;
     revalidatePath('/server-actions-example');
     return likes;
+}
+
+export async function getViews() {
+  return views;
+}
+
+export async function incrementViews() {
+  views += 1;
+  revalidatePath('/server-actions-example');
+  return views;
 }
