@@ -1,22 +1,27 @@
+
+// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import * as admin from 'firebase-admin';
 
-// --- Client-side Firebase ---
-
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBG0apWKqEaVobUdmPHDzPslBp4vBfWwpI",
+  authDomain: "acceso-seguro-3cs42.firebaseapp.com",
+  databaseURL: "https://acceso-seguro-3cs42-default-rtdb.firebaseio.com",
+  projectId: "acceso-seguro-3cs42",
+  storageBucket: "acceso-seguro-3cs42.appspot.com",
+  messagingSenderId: "712343981243",
+  appId: "1:712343981243:web:ced1cab1bbf6d194ea2d9e"
 };
 
+
+// --- Client-side Firebase ---
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 export { db };
+
 
 // --- Server-side Firebase (Admin SDK) ---
 
