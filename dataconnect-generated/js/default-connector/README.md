@@ -3,8 +3,6 @@ This README will guide you through the process of using the generated JavaScript
 
 **If you're looking for the `React README`, you can find it at [`default-connector/react/README.md`](./react/README.md)**
 
-**If you're looking for the `Angular README`, you can find it at [`default-connector/angular/README.md`](./angular/README.md)**
-
 ***NOTE:** This README is generated alongside the generated SDK. If you make changes to this file, they will be overwritten when the SDK is regenerated.*
 
 # Table of Contents

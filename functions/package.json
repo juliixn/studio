@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@genkit-ai/firebase": "^1.15.5",
+    "@genkit-ai/googleai": "^1.15.5",
     "express": "^5.1.0",
     "genkit": "^1.15.5"
   }

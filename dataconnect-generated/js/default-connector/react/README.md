@@ -3,8 +3,6 @@ This README will guide you through the process of using the generated React SDK 
 
 **If you're looking for the `JavaScript README`, you can find it at [`default-connector/README.md`](../README.md)**
 
-**If you're looking for the `Angular README`, you can find it at [`default-connector/angular/README.md`](./angular/README.md)**
-
 ***NOTE:** This README is generated alongside the generated SDK. If you make changes to this file, they will be overwritten when the SDK is regenerated.*
 
 You can use this generated SDK by importing from the package `@firebasegen/default-connector/react` as shown below. Both CommonJS and ESM imports are supported.
