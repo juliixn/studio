@@ -22,10 +22,14 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize App Check
 if (typeof window !== 'undefined') {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('abcdefghijklmnopqrstuvwxy-1234567890abcd'),
-    isTokenAutoRefreshEnabled: true
-  });
+  try {
+    const appCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider('abcdefghijklmnopqrstuvwxy-1234567890abcd'),
+      isTokenAutoRefreshEnabled: true
+    });
+  } catch (error) {
+    console.warn("App Check initialization failed, likely due to test environment or missing config.", error);
+  }
 }
 
 const db = getFirestore(app);
@@ -37,28 +41,27 @@ export { db };
 
 let adminDb: admin.firestore.Firestore;
 
-if (typeof window === 'undefined') {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-    : undefined;
-
-  if (!admin.apps.length) {
-    if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-    } else {
-      // This will only run in development environments where the key might not be set.
-      // It allows the app to build, but server-side admin features will not work.
-      console.warn("Firebase Admin SDK not initialized. Server-side features will not work.");
+if (process.env.NODE_ENV === 'development' || process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    if (!admin.apps.length) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
+        try {
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            adminDb = admin.firestore();
+        } catch (error: any) {
+            if (error.code !== 'app/no-app') { // Ignore error if app is already initialized
+                console.error("Firebase Admin SDK Initialization Error:", error);
+            }
+        }
     }
-  }
-  
-  // Initialize adminDb only if the app has been initialized
-  if (admin.apps.length > 0) {
-    adminDb = admin.firestore();
-  }
+    if (!adminDb) {
+        adminDb = admin.firestore();
+    }
+} else {
+    console.warn("Firebase Admin SDK not initialized. FIREBASE_SERVICE_ACCOUNT_KEY not found.");
 }
+
 
 // Export adminDb safely. It will be undefined on the client or if initialization failed.
 // @ts-ignore
