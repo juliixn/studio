@@ -13,25 +13,10 @@ export async function getPosts() {
   return posts;
 }
 
-export async function createPost(formData: FormData) {
-  const title = formData.get('title') as string;
-  const content = formData.get('content') as string;
-
-  const newPost = {
-    id: String(Date.now()),
-    title,
-    content,
-  };
-
-  // Simula la escritura en la base de datos
-  posts.push(newPost);
-  console.log('Post Creado:', newPost);
-
-  // Revalida el caché de la ruta para que Next.js vuelva a renderizar la página con los nuevos datos.
-  revalidatePath('/server-actions-example');
-}
+// La acción createPost se ha movido al componente de la página.
 
 export async function deletePost(formData: FormData) {
+  'use server'
   const id = formData.get('id') as string;
 
   // Simula la eliminación en la base de datos
