@@ -1,7 +1,7 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 
 export const listKeys = [
     'visitorTypes', 
@@ -17,14 +17,13 @@ export const listKeys = [
 
 export type ListKey = typeof listKeys[number];
 
-// This service now interacts with Prisma instead of localStorage
-
 export async function getList(key: ListKey): Promise<string[]> {
     try {
-        const list = await prisma.list.findUnique({
-            where: { key },
-        });
-        return list ? list.values : [];
+        const doc = await adminDb.collection('lists').doc(key).get();
+        if (!doc.exists) {
+            return [];
+        }
+        return (doc.data()?.values || []) as string[];
     } catch (error) {
         console.error(`Error fetching list "${key}":`, error);
         return [];
@@ -34,11 +33,7 @@ export async function getList(key: ListKey): Promise<string[]> {
 export async function updateList(key: ListKey, newList: string[]): Promise<void> {
     try {
         const sortedList = [...new Set(newList)].sort(); // Ensure unique values and sort
-        await prisma.list.upsert({
-            where: { key },
-            update: { values: sortedList },
-            create: { key, values: sortedList },
-        });
+        await adminDb.collection('lists').doc(key).set({ key, values: sortedList });
     } catch (error) {
         console.error(`Error updating list "${key}":`, error);
     }

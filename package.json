@@ -37,7 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
-    "firebase": "^12.0.0",
+    "firebase": "^10.12.3",
     "firebase-admin": "^12.2.0",
     "get-tsconfig": "^4.10.1",
     "jsqr": "^1.4.0",
