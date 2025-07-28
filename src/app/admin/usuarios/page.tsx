@@ -96,7 +96,9 @@ export default function UsuariosPage() {
 
     const getCondoName = (condoId?: string) => {
         if (!condoId) return 'N/A';
-        return condominios.find(c => c.id === condoId)?.name || 'N/A';
+        const allCondos = getCondominios();
+        const condo = allCondos.find(c => c.id === condoId);
+        return condo?.name || 'N/A';
     }
 
     const handleOpenForm = (user?: User) => {
@@ -160,7 +162,7 @@ export default function UsuariosPage() {
     
     const condosForForm = currentUser?.role === 'Adm. Condo'
         ? condominios
-        : condominios;
+        : getCondominios();
 
     return (
         <>
@@ -309,4 +311,5 @@ export default function UsuariosPage() {
             </AlertDialog>
         </>
     );
-}
+
+    
