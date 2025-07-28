@@ -1,20 +1,17 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { Address } from './definitions';
 
 export async function getDomicilios(condominioId?: string): Promise<Address[]> {
     try {
-        const whereClause: any = {};
+        let query: FirebaseFirestore.Query = adminDb.collection('addresses');
         if (condominioId) {
-            whereClause.condominioId = condominioId;
+            query = query.where('condominioId', '==', condominioId);
         }
-
-        const domicilios = await prisma.address.findMany({
-            where: whereClause,
-            orderBy: { fullAddress: 'asc' }
-        });
+        const snapshot = await query.orderBy('fullAddress').get();
+        const domicilios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Address));
         return JSON.parse(JSON.stringify(domicilios));
     } catch (error) {
         console.error("Error fetching domicilios:", error);
@@ -24,9 +21,12 @@ export async function getDomicilios(condominioId?: string): Promise<Address[]> {
 
 export async function addDomicilio(domicilioData: Omit<Address, 'id'>): Promise<Address | null> {
     try {
-        const newDomicilio = await prisma.address.create({
-            data: domicilioData,
-        });
+        const newDocRef = adminDb.collection('addresses').doc();
+        const newDomicilio = {
+            id: newDocRef.id,
+            ...domicilioData
+        };
+        await newDocRef.set(newDomicilio);
         return JSON.parse(JSON.stringify(newDomicilio));
     } catch (error) {
         console.error("Error adding domicilio:", error);
@@ -36,13 +36,16 @@ export async function addDomicilio(domicilioData: Omit<Address, 'id'>): Promise<
 
 export async function addDomicilios(domiciliosData: Omit<Address, 'id'>[]): Promise<Address[]> {
     try {
-        const result = await prisma.address.createMany({
-            data: domiciliosData,
-            skipDuplicates: true,
-        });
-        // createMany does not return the created records, so we can't return them here.
-        // The calling function should re-fetch if needed.
-        return []; 
+        const batch = adminDb.batch();
+        const addedDomicilios: Address[] = [];
+        for (const domicilio of domiciliosData) {
+            const newDocRef = adminDb.collection('addresses').doc();
+            const newDomicilio = { id: newDocRef.id, ...domicilio };
+            batch.set(newDocRef, newDomicilio);
+            addedDomicilios.push(newDomicilio);
+        }
+        await batch.commit();
+        return JSON.parse(JSON.stringify(addedDomicilios));
     } catch (error) {
         console.error("Error adding domicilios:", error);
         return [];
@@ -51,11 +54,10 @@ export async function addDomicilios(domiciliosData: Omit<Address, 'id'>[]): Prom
 
 export async function updateDomicilio(id: string, updates: Partial<Omit<Address, 'id'>>): Promise<Address | null> {
      try {
-        const updatedDomicilio = await prisma.address.update({
-            where: { id },
-            data: updates,
-        });
-        return JSON.parse(JSON.stringify(updatedDomicilio));
+        const docRef = adminDb.collection('addresses').doc(id);
+        await docRef.update(updates);
+        const updatedDoc = await docRef.get();
+        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
     } catch (error) {
         console.error(`Error updating domicilio ${id}:`, error);
         return null;
@@ -64,9 +66,7 @@ export async function updateDomicilio(id: string, updates: Partial<Omit<Address,
 
 export async function deleteDomicilio(id: string): Promise<boolean> {
     try {
-        await prisma.address.delete({
-            where: { id },
-        });
+        await adminDb.collection('addresses').doc(id).delete();
         return true;
     } catch (error) {
         console.error(`Error deleting domicilio ${id}:`, error);

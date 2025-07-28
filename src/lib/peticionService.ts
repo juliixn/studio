@@ -1,24 +1,29 @@
 
 "use server";
 
-import prisma from './prisma';
-import type { Peticion } from './definitions';
+import { adminDb } from './firebase';
+import type { Peticion, PeticionComment } from './definitions';
+import { Timestamp } from 'firebase-admin/firestore';
+
 
 export async function getPeticiones(condominioId?: string, creatorId?: string): Promise<Peticion[]> {
     try {
-        const whereClause: any = {};
+        let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = adminDb.collection('peticiones');
         if (condominioId) {
-            whereClause.condominioId = condominioId;
+            query = query.where('condominioId', '==', condominioId);
         }
         if (creatorId) {
-            whereClause.creatorId = creatorId;
+            query = query.where('creatorId', '==', creatorId);
         }
 
-        const peticiones = await prisma.peticion.findMany({
-            where: whereClause,
-            orderBy: {
-                createdAt: 'desc',
-            },
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const peticiones = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+                comments: data.comments.map((c: any) => ({ ...c, createdAt: c.createdAt.toDate().toISOString() }))
+            } as Peticion;
         });
         return JSON.parse(JSON.stringify(peticiones));
     } catch (error) {
@@ -29,15 +34,15 @@ export async function getPeticiones(condominioId?: string, creatorId?: string): 
 
 export async function addPeticion(peticionData: Omit<Peticion, 'id' | 'createdAt' | 'status' | 'comments'>): Promise<Peticion | null> {
     try {
-        const newPeticion = await prisma.peticion.create({
-            data: {
-                ...peticionData,
-                status: 'Abierta',
-                comments: {
-                    create: [] // Start with no comments
-                }
-            }
-        });
+        const newDocRef = adminDb.collection('peticiones').doc();
+        const newPeticion = {
+            id: newDocRef.id,
+            ...peticionData,
+            status: 'Abierta',
+            createdAt: Timestamp.now(),
+            comments: [],
+        };
+        await newDocRef.set(newPeticion);
         return JSON.parse(JSON.stringify(newPeticion));
     } catch (error) {
         console.error("Error adding peticion:", error);
@@ -47,24 +52,31 @@ export async function addPeticion(peticionData: Omit<Peticion, 'id' | 'createdAt
 
 export async function updatePeticion(peticionId: string, updates: Partial<Peticion>): Promise<Peticion | null> {
     try {
+        const docRef = adminDb.collection('peticiones').doc(peticionId);
         const { comments, ...restOfUpdates } = updates;
         
-        const updatedPeticion = await prisma.peticion.update({
-            where: { id: peticionId },
-            data: {
-                ...restOfUpdates,
-                ...(comments && {
-                    comments: {
-                        create: comments.map(c => ({
-                            authorId: c.authorId,
-                            authorName: c.authorName,
-                            text: c.text,
-                        }))
-                    }
-                })
-            },
+        await adminDb.runTransaction(async (transaction) => {
+            const doc = await transaction.get(docRef);
+            if (!doc.exists) {
+                throw "Document does not exist!";
+            }
+            
+            // Handle comments separately
+            if (comments && comments.length > 0) {
+                const existingComments = doc.data()?.comments || [];
+                const newComments = comments.map(c => ({
+                    ...c,
+                    createdAt: Timestamp.now()
+                }));
+                transaction.update(docRef, { ...restOfUpdates, comments: [...existingComments, ...newComments] });
+            } else {
+                 transaction.update(docRef, restOfUpdates);
+            }
         });
-        return JSON.parse(JSON.stringify(updatedPeticion));
+
+        const updatedDoc = await docRef.get();
+        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
+
     } catch (error) {
         console.error("Error updating peticion:", error);
         return null;

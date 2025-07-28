@@ -1,20 +1,25 @@
+
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { Condominio } from './definitions';
+
+async function docToCondominio(doc: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>): Promise<Condominio> {
+    const data = doc.data();
+    if (!data) {
+        throw new Error("Document data is undefined.");
+    }
+    return {
+        id: doc.id,
+        ...data,
+    } as Condominio;
+}
 
 export async function getCondominios(): Promise<Condominio[]> {
     try {
-        const condominios = await prisma.condominio.findMany({
-            orderBy: { name: 'asc' }
-        });
-        // Convert comma-separated strings back to arrays
-        const processedCondominios = condominios.map(condo => ({
-            ...condo,
-            guardMenuSections: condo.guardMenuSections ? condo.guardMenuSections.split(',') : [],
-            guardIds: condo.guardIds ? condo.guardIds.split(',') : [],
-        }));
-        return JSON.parse(JSON.stringify(processedCondominios));
+        const snapshot = await adminDb.collection('condominios').orderBy('name').get();
+        const condominios = await Promise.all(snapshot.docs.map(docToCondominio));
+        return JSON.parse(JSON.stringify(condominios));
     } catch (error) {
         console.error("Error fetching condominios:", error);
         return [];
@@ -23,33 +28,24 @@ export async function getCondominios(): Promise<Condominio[]> {
 
 export async function getCondominioById(id: string): Promise<Condominio | null> {
     try {
-        const condominio = await prisma.condominio.findUnique({
-            where: { id }
-        });
-         if (!condominio) return null;
-        // Convert comma-separated strings back to arrays
-        const processedCondominio = {
-            ...condominio,
-            guardMenuSections: condominio.guardMenuSections ? condominio.guardMenuSections.split(',') : [],
-            guardIds: condominio.guardIds ? condominio.guardIds.split(',') : [],
-        };
-        return JSON.parse(JSON.stringify(processedCondominio));
+        const doc = await adminDb.collection('condominios').doc(id).get();
+        if (!doc.exists) return null;
+        return JSON.parse(JSON.stringify(await docToCondominio(doc)));
     } catch (error) {
         console.error(`Error fetching condominio ${id}:`, error);
         return null;
     }
 }
 
-export async function addCondominio(condoData: Partial<Omit<Condominio, 'id'>>): Promise<Condominio | null> {
-     try {
-        const dataToSave: any = {
-            ...condoData,
-            guardMenuSections: Array.isArray(condoData.guardMenuSections) ? condoData.guardMenuSections.join(',') : undefined,
-            guardIds: Array.isArray(condoData.guardIds) ? condoData.guardIds.join(',') : undefined,
+export async function addCondominio(condoData: Omit<Condominio, 'id'>): Promise<Condominio | null> {
+    try {
+        const newCondoRef = adminDb.collection('condominios').doc();
+        const newCondo = {
+            id: newCondoRef.id,
+            status: 'Activo',
+            ...condoData
         };
-        const newCondo = await prisma.condominio.create({
-            data: dataToSave,
-        });
+        await newCondoRef.set(newCondo);
         return JSON.parse(JSON.stringify(newCondo));
     } catch (error) {
         console.error("Error adding condominio:", error);
@@ -59,16 +55,10 @@ export async function addCondominio(condoData: Partial<Omit<Condominio, 'id'>>):
 
 export async function updateCondominio(id: string, updates: Partial<Omit<Condominio, 'id'>>): Promise<Condominio | null> {
     try {
-        const dataToUpdate: any = {
-            ...updates,
-            guardMenuSections: Array.isArray(updates.guardMenuSections) ? updates.guardMenuSections.join(',') : undefined,
-            guardIds: Array.isArray(updates.guardIds) ? updates.guardIds.join(',') : undefined,
-        };
-        const updatedCondo = await prisma.condominio.update({
-            where: { id },
-            data: dataToUpdate,
-        });
-        return JSON.parse(JSON.stringify(updatedCondo));
+        const docRef = adminDb.collection('condominios').doc(id);
+        await docRef.update(updates);
+        const updatedDoc = await docRef.get();
+        return JSON.parse(JSON.stringify(await docToCondominio(updatedDoc)));
     } catch (error) {
         console.error(`Error updating condominio ${id}:`, error);
         return null;
@@ -77,9 +67,7 @@ export async function updateCondominio(id: string, updates: Partial<Omit<Condomi
 
 export async function deleteCondominio(id: string): Promise<boolean> {
      try {
-        await prisma.condominio.delete({
-            where: { id },
-        });
+        await adminDb.collection('condominios').doc(id).delete();
         return true;
     } catch (error) {
         console.error(`Error deleting condominio ${id}:`, error);
