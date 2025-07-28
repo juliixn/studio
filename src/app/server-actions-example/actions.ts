@@ -8,6 +8,7 @@ let posts = [
   { id: '1', title: 'Post de Ejemplo 1', content: 'Este es el contenido del primer post.' },
   { id: '2', title: 'Post de Ejemplo 2', content: 'Este es el contenido del segundo post.' },
 ];
+let likes = 0;
 
 export async function getPosts() {
   return posts;
@@ -58,4 +59,14 @@ export async function updatePost(formData: FormData) {
     posts[postIndex] = { ...posts[postIndex], title, content };
     
     revalidatePath('/server-actions-example');
+}
+
+export async function getLikes() {
+    return likes;
+}
+
+export async function incrementLike() {
+    likes += 1;
+    revalidatePath('/server-actions-example');
+    return likes;
 }

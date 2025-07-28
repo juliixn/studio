@@ -1,12 +1,14 @@
-import { getPosts, deletePost, updatePost } from './actions';
+import { getPosts, deletePost, updatePost, getLikes } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
 import { CreatePostForm } from '@/components/server-actions-example/create-post-form';
 import { UpdatePostForm } from '@/components/server-actions-example/update-post-form';
+import LikeButton from '@/components/server-actions-example/like-button';
 
 export default async function ServerActionsExamplePage() {
   const posts = await getPosts();
+  const initialLikes = await getLikes();
 
   return (
     <div className="container mx-auto p-4 space-y-8">
@@ -16,6 +18,18 @@ export default async function ServerActionsExamplePage() {
           Este ejemplo demuestra cómo usar Server Actions en Next.js para crear, actualizar y eliminar datos.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+            <CardTitle>Me Gusta (Optimistic UI)</CardTitle>
+            <CardDescription>
+                Este botón actualiza su estado del lado del cliente después de que la Server Action se completa.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <LikeButton initialLikes={initialLikes} />
+        </CardContent>
+      </Card>
 
       <CreatePostForm />
 
