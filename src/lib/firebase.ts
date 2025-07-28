@@ -66,4 +66,3 @@ if (typeof window === 'undefined') { // Prevent admin SDK from running on the cl
 // Export adminDb safely. It will be undefined on the client or if initialization failed.
 // @ts-ignore
 export { adminDb };
-
