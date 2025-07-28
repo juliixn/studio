@@ -3,6 +3,9 @@
 
 import { adminDb } from './firebase';
 import type { User } from './definitions';
+import * as bcrypt from 'bcrypt';
+
+const SALT_ROUNDS = 10;
 
 export async function getUsers(): Promise<User[]> {
     try {
@@ -48,10 +51,22 @@ export async function getUserById(userId: string): Promise<User | null> {
 
 export async function addUser(userData: Partial<User>): Promise<User | null> {
     try {
-        const { id, ...dataToAdd } = userData;
+        const { id, password, ...dataToAdd } = userData;
         const userId = id || userData.email!; // Use email as ID if no ID provided
-        await adminDb.collection('users').doc(userId).set(dataToAdd);
-        return { id: userId, ...dataToAdd } as User;
+
+        if (!password) {
+            throw new Error("Password is required for new users.");
+        }
+
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        
+        const finalUserData = {
+            ...dataToAdd,
+            password: hashedPassword
+        };
+
+        await adminDb.collection('users').doc(userId).set(finalUserData);
+        return { id: userId, ...finalUserData } as User;
     } catch (error) {
         console.error("Error adding user:", error);
         return null;
@@ -60,7 +75,14 @@ export async function addUser(userData: Partial<User>): Promise<User | null> {
 
 export async function updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
     try {
-        await adminDb.collection('users').doc(userId).update(updates);
+        const { password, ...otherUpdates } = updates;
+        const dataToUpdate: any = { ...otherUpdates };
+
+        if (password) {
+            dataToUpdate.password = await bcrypt.hash(password, SALT_ROUNDS);
+        }
+
+        await adminDb.collection('users').doc(userId).update(dataToUpdate);
         const updatedDoc = await adminDb.collection('users').doc(userId).get();
         const data = updatedDoc.data();
         if (!data) return null;

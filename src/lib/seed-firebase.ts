@@ -2,12 +2,26 @@
 import { adminDb } from './firebase';
 import { mockUsers, mockCondominios, allAddresses, mockEmergencyContacts, mockAssets, mockCommonAreas } from './data';
 import { listKeys, mockLists } from './data-lists';
+import * as bcrypt from 'bcrypt';
+
+const SALT_ROUNDS = 10;
 
 async function seedData() {
     console.log('Starting to seed data into Firestore...');
 
+    // Hash passwords for mock users
+    const hashedUsers = await Promise.all(
+        mockUsers.map(async (user) => {
+            if (user.password) {
+                const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
+                return { ...user, password: hashedPassword };
+            }
+            return user;
+        })
+    );
+
     const collectionsToSeed = [
-        { name: 'users', data: mockUsers, idField: 'email' },
+        { name: 'users', data: hashedUsers, idField: 'email' },
         { name: 'condominios', data: mockCondominios, idField: 'id' },
         { name: 'addresses', data: allAddresses, idField: 'id' },
         { name: 'emergencyContacts', data: mockEmergencyContacts, idField: 'id' },
@@ -40,9 +54,9 @@ async function seedData() {
     // Seed lists
     console.log('Seeding collection: lists...');
     const listCollectionRef = adminDb.collection('lists');
-    const snapshot = await listCollectionRef.get();
+    const snapshotLists = await listCollectionRef.get();
     const batchDeleteLists = adminDb.batch();
-    snapshot.docs.forEach(doc => batchDeleteLists.delete(doc.ref));
+    snapshotLists.docs.forEach(doc => batchDeleteLists.delete(doc.ref));
     await batchDeleteLists.commit();
     console.log('  - Cleared existing documents in lists.');
 

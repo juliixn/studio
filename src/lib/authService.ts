@@ -3,6 +3,7 @@
 
 import type { User } from './definitions';
 import { adminDb } from './firebase';
+import * as bcrypt from 'bcrypt';
 
 export async function login(email: string, pass: string): Promise<{ success: boolean; user?: User; message: string }> {
     try {
@@ -14,7 +15,13 @@ export async function login(email: string, pass: string): Promise<{ success: boo
         
         const user = { id: userDoc.id, ...userDoc.data() } as User;
 
-        if (user.password !== pass) {
+        if (!user.password) {
+             return { success: false, message: 'La cuenta no tiene una contraseña configurada.' };
+        }
+
+        const passwordMatch = await bcrypt.compare(pass, user.password);
+
+        if (!passwordMatch) {
             return { success: false, message: 'Contraseña incorrecta.' };
         }
         
