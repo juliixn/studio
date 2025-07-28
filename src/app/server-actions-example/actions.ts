@@ -13,7 +13,23 @@ export async function getPosts() {
   return posts;
 }
 
-// La acción createPost se ha movido al componente de la página.
+export async function createPost(title: string, content: string) {
+  'use server'
+  if (!title || !content) {
+    throw new Error('El título y el contenido son requeridos.');
+  }
+  const newPost = {
+    id: String(posts.length + 1),
+    title,
+    content
+  };
+  posts.push(newPost);
+  console.log('Post creado:', newPost);
+  
+  revalidatePath('/server-actions-example');
+  return newPost;
+}
+
 
 export async function deletePost(formData: FormData) {
   'use server'
