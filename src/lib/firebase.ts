@@ -41,28 +41,29 @@ export { db };
 
 let adminDb: admin.firestore.Firestore;
 
-if (process.env.NODE_ENV === 'development' || process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    if (!admin.apps.length) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
-        try {
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccount)
-            });
-            adminDb = admin.firestore();
-        } catch (error: any) {
-            if (error.code !== 'app/no-app') { // Ignore error if app is already initialized
-                console.error("Firebase Admin SDK Initialization Error:", error);
+if (typeof window === 'undefined') { // Prevent admin SDK from running on the client
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        if (!admin.apps.length) {
+            try {
+                const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+                admin.initializeApp({
+                    credential: admin.credential.cert(serviceAccount)
+                });
+                adminDb = admin.firestore();
+            } catch (error: any) {
+                console.error("Firebase Admin SDK Initialization Error:", error.message);
             }
+        } else {
+            // If the app is already initialized, just get the firestore instance
+            adminDb = admin.firestore();
         }
+    } else {
+        console.warn("Firebase Admin SDK not initialized. FIREBASE_SERVICE_ACCOUNT_KEY not found.");
     }
-    if (!adminDb) {
-        adminDb = admin.firestore();
-    }
-} else {
-    console.warn("Firebase Admin SDK not initialized. FIREBASE_SERVICE_ACCOUNT_KEY not found.");
 }
 
 
 // Export adminDb safely. It will be undefined on the client or if initialization failed.
 // @ts-ignore
 export { adminDb };
+
