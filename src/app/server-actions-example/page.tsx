@@ -1,8 +1,9 @@
-import { getPosts, deletePost } from './actions';
+import { getPosts, deletePost, updatePost } from './actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2 } from 'lucide-react';
 import { CreatePostForm } from '@/components/server-actions-example/create-post-form';
+import { UpdatePostForm } from '@/components/server-actions-example/update-post-form';
 
 export default async function ServerActionsExamplePage() {
   const posts = await getPosts();
@@ -12,7 +13,7 @@ export default async function ServerActionsExamplePage() {
       <div>
         <h1 className="text-3xl font-bold">Ejemplo de Server Actions</h1>
         <p className="text-muted-foreground">
-          Este ejemplo demuestra cómo usar Server Actions en Next.js para crear y eliminar datos.
+          Este ejemplo demuestra cómo usar Server Actions en Next.js para crear, actualizar y eliminar datos.
         </p>
       </div>
 
@@ -23,14 +24,9 @@ export default async function ServerActionsExamplePage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
             <Card key={post.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle>{post.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p>{post.content}</p>
-              </CardContent>
+              <UpdatePostForm post={post} updateItemAction={updatePost} />
+              
               <CardFooter>
-                {/* Este formulario invoca la Server Action desde el archivo `actions.ts` */}
                 <form action={deletePost} className="ml-auto">
                   <input type="hidden" name="id" value={post.id} />
                   <Button variant="destructive" size="icon">

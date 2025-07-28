@@ -45,3 +45,21 @@ export async function deletePost(formData: FormData) {
   // Revalida el caché para actualizar la UI.
   revalidatePath('/server-actions-example');
 }
+
+export async function updatePost(formData: FormData) {
+    'use server'
+    const id = formData.get('id') as string;
+    const title = formData.get('title') as string;
+    const content = formData.get('content') as string;
+
+    const postIndex = posts.findIndex((post) => post.id === id);
+
+    if (postIndex === -1) {
+        throw new Error('Post no encontrado.');
+    }
+
+    posts[postIndex] = { ...posts[postIndex], title, content };
+    console.log('Post actualizado:', posts[postIndex]);
+    
+    revalidatePath('/server-actions-example');
+}
