@@ -22,7 +22,7 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
         
         const processedComs = comunicados.map(c => ({
             ...c,
-            channels: c.channels ? c.channels.split(',') : []
+            channels: c.channels ? c.channels.split(',') as ('Push' | 'Email')[] : []
         }))
 
         return JSON.parse(JSON.stringify(processedComs));

@@ -15,7 +15,7 @@ const allGestionSections: { href: string; icon: React.ElementType; title: string
     { href: "/admin/domicilios", icon: Home, title: "Domicilios", description: "Administra las direcciones individuales dentro de cada condominio.", id: 'condominio' }, // Uses same permission
     { href: "/admin/usuarios", icon: Users, title: "Usuarios", description: "Gestiona las cuentas de todos los usuarios: admins, guardias y residentes.", id: 'usuarios' },
     { href: "/admin/directorios", icon: UserSquare, title: "Directorio Unificado", description: "Consulta rápidamente a todos los usuarios por rol y condominio.", id: 'directorios' },
-    { href: "/admin/activos", icon: Package, title: "Activos", description: "Gestiona el inventario y mantenimiento de los activos del condominio.", id: 'usuarios' } // Uses same permission
+    { href: "/admin/activos", icon: Package, title: "Activos", description: "Gestiona el inventario y mantenimiento de los activos del condominio.", id: 'activos' }
 ];
 
 export default function GestionHubPage() {

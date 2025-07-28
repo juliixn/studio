@@ -1,19 +1,45 @@
 
 'use client';
 
-import {
-  LogOut,
-} from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import {
+  Bell,
+  Home,
+  Users2,
+  LineChart,
+  Package,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeft,
+  Building,
+  ClipboardList,
+  DollarSign,
+  ShieldCheck,
+  Package2,
+  Users,
+  CircleUser
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import LiveClock from '@/components/live-clock';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
 import type { User } from '@/lib/definitions';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent, SidebarHeader, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
+
+const navItems = [
+    { href: "/admin/dashboard", icon: Home, label: "Dashboard" },
+    { href: "/admin/gestion", icon: Building, label: "Gestión" },
+    { href: "/admin/operaciones", icon: ShieldCheck, label: "Operaciones" },
+    { href: "/admin/finanzas", icon: DollarSign, label: "Finanzas" },
+    { href: "/admin/configuracion", icon: Settings, label: "Configuración" },
+];
+
 
 export default function AdminLayout({
   children,
@@ -21,6 +47,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -50,16 +77,33 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <div className="flex flex-col">
-           <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-             <div className="flex items-center gap-2 sm:gap-4">
-                 <Link href="/admin/dashboard" className="flex items-center gap-2">
-                     <Image src="/logoo.png" alt="Logo Glomar" width={32} height={32} />
-                     <span className="hidden md:inline-block font-semibold">Glomar Panel</span>
-                 </Link>
-             </div>
+    <div className="flex min-h-screen w-full">
+      <Sidebar>
+          <SidebarContent>
+              <SidebarHeader>
+                 <div className="flex items-center gap-2" data-testid="sidebar-header-content">
+                    <Package2 className="h-6 w-6" />
+                    <span className="font-semibold">Glomar Panel</span>
+                </div>
+              </SidebarHeader>
+              <SidebarMenu>
+                {navItems.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} passHref legacyBehavior>
+                           <SidebarMenuButton isActive={pathname.startsWith(item.href)}>
+                                <item.icon className="h-4 w-4" />
+                                {item.label}
+                           </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+          </SidebarContent>
+      </Sidebar>
 
+      <div className="flex flex-col flex-1">
+           <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+             <SidebarTrigger className="sm:hidden"/>
              <div className="ml-auto flex items-center gap-4">
                <LiveClock />
                <DropdownMenu>

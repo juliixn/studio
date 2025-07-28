@@ -1,18 +1,25 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { WorkOrder } from './definitions';
+import { Timestamp } from 'firebase-admin/firestore';
+
 
 export async function getWorkOrders(condominioId?: string): Promise<WorkOrder[]> {
     try {
-        const whereClause: any = {};
+        let query: FirebaseFirestore.Query = adminDb.collection('workOrders');
         if (condominioId) {
-            whereClause.condominioId = condominioId;
+            query = query.where('condominioId', '==', condominioId);
         }
-        const workOrders = await prisma.workOrder.findMany({
-            where: whereClause,
-            orderBy: { createdAt: 'desc' }
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const workOrders = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+                completedAt: data.completedAt ? data.completedAt.toDate().toISOString() : undefined,
+            } as WorkOrder;
         });
         return JSON.parse(JSON.stringify(workOrders));
     } catch (error) {
@@ -23,9 +30,13 @@ export async function getWorkOrders(condominioId?: string): Promise<WorkOrder[]>
 
 export async function addWorkOrder(orderData: Omit<WorkOrder, 'id' | 'createdAt'>): Promise<WorkOrder | null> {
     try {
-        const newOrder = await prisma.workOrder.create({
-            data: orderData as any,
-        });
+        const newDocRef = adminDb.collection('workOrders').doc();
+        const newOrder = {
+            id: newDocRef.id,
+            ...orderData,
+            createdAt: Timestamp.now(),
+        };
+        await newDocRef.set(newOrder);
         return JSON.parse(JSON.stringify(newOrder));
     } catch (error) {
         console.error("Error adding work order:", error);
@@ -33,16 +44,16 @@ export async function addWorkOrder(orderData: Omit<WorkOrder, 'id' | 'createdAt'
     }
 }
 
-export async function updateWorkOrder(orderId: string, updates: Partial<Omit<WorkOrder, 'id'>>): Promise<WorkOrder | null> {
+export async function updateWorkOrder(orderId: string, updates: Partial<Omit<WorkOrder, 'id' | 'createdAt'>>): Promise<WorkOrder | null> {
     try {
+        const updateData: any = { ...updates };
         if (updates.status === 'Completada' && !updates.completedAt) {
-            updates.completedAt = new Date().toISOString();
+            updateData.completedAt = Timestamp.now();
         }
-        const updatedOrder = await prisma.workOrder.update({
-            where: { id: orderId },
-            data: updates,
-        });
-        return JSON.parse(JSON.stringify(updatedOrder));
+        const docRef = adminDb.collection('workOrders').doc(orderId);
+        await docRef.update(updateData);
+        const updatedDoc = await docRef.get();
+        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
     } catch (error) {
         console.error(`Error updating work order ${orderId}:`, error);
         return null;
@@ -51,9 +62,7 @@ export async function updateWorkOrder(orderId: string, updates: Partial<Omit<Wor
 
 export async function deleteWorkOrder(orderId: string): Promise<boolean> {
     try {
-        await prisma.workOrder.delete({
-            where: { id: orderId },
-        });
+        await adminDb.collection('workOrders').doc(orderId).delete();
         return true;
     } catch (error) {
         console.error(`Error deleting work order ${orderId}:`, error);

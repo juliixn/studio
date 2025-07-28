@@ -20,8 +20,8 @@ export interface User {
     photoUrl?: string;
     condominioId?: string; 
     addressId?: string;
-    condominioIds?: string; // Stored as comma-separated string
-    addressIds?: string; // Stored as comma-separated string
+    condominioIds?: string[]; // Stored as comma-separated string
+    addressIds?: string[]; // Stored as comma-separated string
     vehicles?: VehicleInfo[];
     dailySalary?: number;
     allowRemoteCheckIn?: boolean;
@@ -30,7 +30,7 @@ export interface User {
     leaseStartDate?: string;
     leaseEndDate?: string;
     numberOfInhabitants?: number;
-    inhabitantNames?: string; // Stored as comma-separated string
+    inhabitantNames?: string[]; // Stored as comma-separated string
 }
 
 export type GuardMenuSection = 'vehicular' | 'pedestrian' | 'packages' | 'bitacora' | 'peticiones' | 'my_payroll' | 'my_loans' | 'active_exits' | 'reservations' | 'notifications';
@@ -42,11 +42,11 @@ export interface Condominio {
     latitude?: number;
     longitude?: number;
     status: 'Activo' | 'Suspendido';
-    guardIds?: string; // Stored as comma-separated string
+    guardIds?: string[]; // Stored as comma-separated string
     geofenceRadius?: number;
     guardsRequiredDiurno?: number;
     guardsRequiredNocturno?: number;
-    guardMenuSections?: string; // Stored as comma-separated string
+    guardMenuSections?: string[]; // Stored as comma-separated string
 }
 
 export interface Address {
@@ -90,7 +90,7 @@ export interface TurnoInfo {
     turno: 'Diurno' | 'Nocturno' | 'Apoyo';
     condominioId: string;
     condominioName: string;
-    equipmentIds?: string; // Stored as comma-separated string
+    equipmentIds?: string[]; // Stored as comma-separated string
 }
 
 export interface PeticionComment {
@@ -131,7 +131,7 @@ export interface BitacoraEntry {
     type: BitacoraEntryType;
     text: string;
     relatedId?: string;
-    photos?: string; // Stored as comma-separated string
+    photos?: string[]; // Stored as comma-separated string
     category?: string;
     latitude?: number;
     longitude?: number;
@@ -283,7 +283,7 @@ export interface ShiftRecord {
     turno: 'Diurno' | 'Nocturno' | 'Apoyo';
     startTime: string;
     endTime?: string;
-    equipmentIds?: string; // Stored as comma-separated string
+    equipmentIds?: string[]; // Stored as comma-separated string
     handoverNotes?: string;
     incident?: ShiftIncidentType | null;
 }
@@ -373,7 +373,8 @@ export const permissionModules = {
     configuracion: 'Configuración General',
     listas: 'Listas',
     emergencia: 'Emergencia',
-    roles: 'Roles y Permisos'
+    roles: 'Roles y Permisos',
+    activos: 'Activos'
 };
 
 export type PermissionModuleId = keyof typeof permissionModules;
@@ -428,7 +429,7 @@ export interface Comunicado {
   message: string;
   target: 'all' | string; // 'all' or a condominioId
   targetName: string;
-  channels: string; // Stored as comma-separated string
+  channels: string[]; // Stored as comma-separated string
   createdAt: string;
 }
 
@@ -509,12 +510,13 @@ export interface ChatMessage {
 
 export interface DirectMessage extends ChatMessage {
     conversationId: string;
+    recipientId: string;
 }
 
 export interface Conversation {
     id: string;
-    participantIds: string; // Stored as comma-separated string
-    participantNames: string; // Stored as comma-separated string
+    participantIds: string[]; // Stored as comma-separated string
+    participantNames: string[]; // Stored as comma-separated string
     messages: DirectMessage[];
     lastMessageAt: string;
 }

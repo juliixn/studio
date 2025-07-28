@@ -7,10 +7,8 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
     try {
         const conversations = await prisma.conversation.findMany({
             where: {
-                participants: {
-                    some: {
-                        id: userId
-                    }
+                participantIds: {
+                    has: userId
                 }
             },
             include: {
@@ -19,20 +17,13 @@ export async function getConversationsForUser(userId: string): Promise<Conversat
                         createdAt: 'asc',
                     },
                 },
-                participants: true,
             },
             orderBy: {
                 lastMessageAt: 'desc',
             },
         });
 
-        const processedConversations = conversations.map(convo => ({
-            ...convo,
-            participantIds: convo.participants.map(p => p.id),
-            participantNames: convo.participants.map(p => p.name)
-        }))
-
-        return JSON.parse(JSON.stringify(processedConversations));
+        return JSON.parse(JSON.stringify(conversations));
     } catch (error) {
         console.error("Error fetching conversations:", error);
         return [];
@@ -58,11 +49,8 @@ export async function addDirectMessage(author: User, recipient: User, text: stri
             },
             create: {
                 id: conversationId,
-                participantIds: [author.id, recipient.id].join(','),
-                participantNames: [author.name, recipient.name].join(','),
-                participants: {
-                    connect: [{ id: author.id }, { id: recipient.id }]
-                },
+                participantIds: [author.id, recipient.id],
+                participantNames: [author.name, recipient.name],
                 messages: {
                     create: {
                         authorId: author.id,
@@ -74,17 +62,10 @@ export async function addDirectMessage(author: User, recipient: User, text: stri
             },
             include: {
                 messages: true,
-                participants: true,
             }
         });
         
-        const processedConversation = {
-            ...conversation,
-            participantIds: conversation.participants.map(p => p.id),
-            participantNames: conversation.participants.map(p => p.name)
-        }
-
-        return JSON.parse(JSON.stringify(processedConversation));
+        return JSON.parse(JSON.stringify(conversation));
     } catch (error) {
         console.error("Error sending direct message:", error);
         return null;

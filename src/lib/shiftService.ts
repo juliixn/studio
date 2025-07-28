@@ -38,7 +38,15 @@ export async function endShift(shiftId: string, handoverNotes?: string): Promise
         }
         await shiftRef.update(updateData);
         const updatedDoc = await shiftRef.get();
-        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
+        const data = updatedDoc.data();
+        if (!data) return null;
+
+        return JSON.parse(JSON.stringify({ 
+            id: updatedDoc.id, 
+            ...data,
+            startTime: data.startTime.toDate().toISOString(),
+            endTime: data.endTime ? data.endTime.toDate().toISOString() : undefined,
+        }));
     } catch (error) {
         console.error(`Error ending shift ${shiftId}:`, error);
         return null;
@@ -113,7 +121,15 @@ export async function updateShiftIncident(shiftId: string, incident: ShiftIncide
         const shiftRef = adminDb.collection('shifts').doc(shiftId);
         await shiftRef.update({ incident: incident || null });
         const updatedDoc = await shiftRef.get();
-        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
+        const data = updatedDoc.data();
+        if (!data) return null;
+        
+        return JSON.parse(JSON.stringify({ 
+            id: updatedDoc.id, 
+            ...data,
+            startTime: data.startTime.toDate().toISOString(),
+            endTime: data.endTime ? data.endTime.toDate().toISOString() : undefined
+        }));
     } catch (error) {
         console.error(`Error updating shift incident for ${shiftId}:`, error);
         return null;
