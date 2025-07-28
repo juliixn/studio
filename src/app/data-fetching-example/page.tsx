@@ -8,9 +8,11 @@ interface Post {
 
 async function getPosts(): Promise<Post[]> {
     const res = await fetch('https://jsonplaceholder.typicode.com/posts', { 
-        // 'force-cache' es el comportamiento por defecto de fetch en Next.js.
-        // La respuesta será cacheadada indefinidamente.
-        cache: 'force-cache' 
+        // Esta opción habilita la Regeneración Estática Incremental (ISR).
+        // Los datos se cachearán por 3600 segundos (1 hora).
+        // Si una petición llega después de ese tiempo, se sirve la versión cacheadada
+        // mientras Next.js revalida los datos en segundo plano.
+        next: { revalidate: 3600 } 
     });
 
     if (!res.ok) {
@@ -27,9 +29,9 @@ export default async function DataFetchingExamplePage() {
     return (
         <div className="container mx-auto p-4 space-y-8">
             <div>
-                <h1 className="text-3xl font-bold">Data Fetching con `force-cache`</h1>
+                <h1 className="text-3xl font-bold">Data Fetching con Revalidación</h1>
                 <p className="text-muted-foreground">
-                    Esta página obtiene datos de una API externa usando `fetch`. La opción `cache: 'force-cache'` (que es la predeterminada) le indica a Next.js que almacene en caché el resultado de forma indefinida. Los datos solo se volverán a obtener si se reconstruye el sitio o se revalida la ruta.
+                    Esta página obtiene datos usando `revalidate`. Los datos se cachean por un tiempo específico (en este caso, 1 hora). Si un usuario visita la página después de que el tiempo ha expirado, verá la versión antigua mientras Next.js obtiene los datos actualizados en segundo plano. Las visitas posteriores recibirán la nueva versión.
                 </p>
             </div>
 
