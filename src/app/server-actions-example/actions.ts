@@ -13,8 +13,11 @@ export async function getPosts() {
   return posts;
 }
 
-export async function createPost(title: string, content: string) {
+export async function createPost(formData: FormData) {
   'use server'
+  const title = formData.get('title') as string;
+  const content = formData.get('content') as string;
+
   if (!title || !content) {
     throw new Error('El título y el contenido son requeridos.');
   }
