@@ -15,7 +15,7 @@ export function CreatePostForm() {
             <CardHeader>
                 <CardTitle>Crear un Nuevo Post</CardTitle>
                 <CardDescription>
-                    Este formulario está en un componente de cliente, pero el botón invoca una Server Action.
+                    Este formulario invoca una Server Action directamente.
                 </CardDescription>
             </CardHeader>
             <form ref={formRef} action={async (formData) => {

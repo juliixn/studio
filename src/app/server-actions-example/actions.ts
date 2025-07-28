@@ -14,7 +14,6 @@ export async function getPosts() {
 }
 
 export async function createPost(formData: FormData) {
-  'use server'
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
 
@@ -22,12 +21,11 @@ export async function createPost(formData: FormData) {
     throw new Error('El título y el contenido son requeridos.');
   }
   const newPost = {
-    id: String(posts.length + 1),
+    id: String(Date.now()), // Use timestamp for a more unique ID
     title,
     content
   };
-  posts.push(newPost);
-  console.log('Post creado:', newPost);
+  posts.unshift(newPost); // Add to the beginning of the list
   
   revalidatePath('/server-actions-example');
   return newPost;
@@ -40,7 +38,6 @@ export async function deletePost(formData: FormData) {
 
   // Simula la eliminación en la base de datos
   posts = posts.filter((post) => post.id !== id);
-  console.log('Post Eliminado:', id);
 
   // Revalida el caché para actualizar la UI.
   revalidatePath('/server-actions-example');
@@ -59,7 +56,6 @@ export async function updatePost(formData: FormData) {
     }
 
     posts[postIndex] = { ...posts[postIndex], title, content };
-    console.log('Post actualizado:', posts[postIndex]);
     
     revalidatePath('/server-actions-example');
 }
