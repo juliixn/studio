@@ -11,9 +11,9 @@ const firebaseConfig = {
   authDomain: "acceso-seguro-3cs42.firebaseapp.com",
   databaseURL: "https://acceso-seguro-3cs42-default-rtdb.firebaseio.com",
   projectId: "acceso-seguro-3cs42",
-  storageBucket: "acceso-seguro-3cs42.appspot.com",
+  storageBucket: "acceso-seguro-3cs42.firebasestorage.app",
   messagingSenderId: "712343981243",
-  appId: "1:712343981243:web:ced1cab1bbf6d194ea2d9e"
+  appId: "1:712343981243:web:5ec7bf4b0f9c4bebea2d9e"
 };
 
 
