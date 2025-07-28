@@ -18,7 +18,6 @@ export function CreatePostForm() {
                     Este formulario está en un componente de cliente, pero el botón invoca una Server Action.
                 </CardDescription>
             </CardHeader>
-            {/* La acción se define en el botón `formAction` */}
             <form ref={formRef} action={async (formData) => {
                 await createPost(formData);
                 formRef.current?.reset();
@@ -44,7 +43,7 @@ export function CreatePostForm() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button type="submit" formAction={createPost}>
+                    <Button type="submit">
                         Crear Post
                     </Button>
                 </CardFooter>
