@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import localFont from 'next/font/local'
 import "./globals.css";
 
-const roboto = Roboto({
-  weight: "400",
-  subsets: ["latin"],
-});
+const myFont = localFont({
+  src: './my-font.woff2',
+})
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -18,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={roboto.className}>
+    <html lang="en" className={myFont.className}>
       <body>
         {children}
       </body>
