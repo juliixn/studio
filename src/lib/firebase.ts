@@ -25,23 +25,31 @@ export { db };
 
 // --- Server-side Firebase (Admin SDK) ---
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-  : undefined;
+let adminDb: admin.firestore.Firestore;
 
-if (!admin.apps.length) {
+if (typeof window === 'undefined') {
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+    : undefined;
+
+  if (!admin.apps.length) {
     if (serviceAccount) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
     } else {
-        // Initialize without credentials for client-side or if no service account is provided
-        // Note: Admin-level operations will fail without a service account
-        initializeApp(firebaseConfig);
+      // This will only run in development environments where the key might not be set.
+      // It allows the app to build, but server-side admin features will not work.
+      console.warn("Firebase Admin SDK not initialized. Server-side features will not work.");
     }
+  }
+  
+  // Initialize adminDb only if the app has been initialized
+  if (admin.apps.length > 0) {
+    adminDb = admin.firestore();
+  }
 }
 
-
-const adminDb = admin.firestore();
-
+// Export adminDb safely. It will be undefined on the client or if initialization failed.
+// @ts-ignore
 export { adminDb };
