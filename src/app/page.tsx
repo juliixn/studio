@@ -100,11 +100,18 @@ function LoginForm({ onForgotPasswordClick }: { onForgotPasswordClick: () => voi
 
     switch (result.user.role) {
         case 'Administrador':
-        case 'Adm. Condo':
             router.push('/admin');
             break;
+        case 'Adm. Condo':
+            // If Adm. Condo has more than one condo, redirect to selection, otherwise to dashboard
+            if (result.user.condominioIds && result.user.condominioIds.length > 1) {
+                router.push('/admin/seleccionar-condominio');
+            } else {
+                router.push('/admin');
+            }
+            break;
         case 'Guardia':
-            router.push('/guardia');
+            router.push('/guardia/iniciar-turno');
             break;
         case 'Propietario':
         case 'Renta':
