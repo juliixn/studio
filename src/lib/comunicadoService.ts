@@ -1,3 +1,4 @@
+
 "use server";
 
 import { adminDb } from './firebase';
@@ -8,9 +9,6 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
     try {
         let query: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = adminDb.collection('comunicados');
 
-        // This logic is more complex in Firestore than in Prisma.
-        // For now, if a condominioId is provided, we fetch for that specific condo AND for 'all'.
-        // A more scalable solution might involve user-specific feeds.
         if (condominioId) {
              const condoSnapshot = await query.where('target', '==', condominioId).get();
              const allSnapshot = await query.where('target', '==', 'all').get();
@@ -18,6 +16,7 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
                 .map(doc => {
                     const data = doc.data();
                     return {
+                        id: doc.id,
                         ...data,
                         createdAt: data.createdAt.toDate().toISOString(),
                     } as Comunicado
@@ -31,6 +30,7 @@ export async function getComunicados(condominioId?: string): Promise<Comunicado[
         const comunicados = snapshot.docs.map(doc => {
             const data = doc.data();
             return {
+                id: doc.id,
                 ...data,
                 createdAt: data.createdAt.toDate().toISOString(),
             } as Comunicado;

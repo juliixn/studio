@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import type { GuestPass, Condominio, User, Address } from "@/lib/definitions";
 import { getGuestPasses } from "@/lib/guestPassService";
 import { getCondominios } from "@/lib/condominioService";
-import { allAddresses as initialAddresses } from "@/lib/data";
+import { getDomicilios } from "@/lib/domicilioService";
 import { format } from 'date-fns/format';
 import { isPast } from 'date-fns/isPast';
 import { es } from 'date-fns/locale';
@@ -53,7 +53,7 @@ export default function PasesInvitadoAdminPage() {
     const { toast } = useToast();
     const [passes, setPasses] = useState<GuestPass[]>([]);
     const [condominios, setCondominios] = useState<Condominio[]>([]);
-    const [addresses, setAddresses] = useState<Address[]>(initialAddresses);
+    const [addresses, setAddresses] = useState<Address[]>([]);
     const [user, setUser] = useState<User | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -64,18 +64,24 @@ export default function PasesInvitadoAdminPage() {
             setUser(parsedUser);
             
             const userCondoId = parsedUser.role === 'Adm. Condo' ? parsedUser.condominioId : undefined;
-            const allCondos = getCondominios();
-            const allAddresses = initialAddresses;
-
-            setPasses(getGuestPasses(userCondoId));
             
-            if (userCondoId) {
-                setCondominios(allCondos.filter(c => c.id === userCondoId));
-                setAddresses(allAddresses.filter(a => a.condominioId === userCondoId));
-            } else {
-                setCondominios(allCondos);
-                setAddresses(allAddresses);
-            }
+            const fetchData = async () => {
+                const [passData, condoData, addressData] = await Promise.all([
+                    getGuestPasses(userCondoId),
+                    getCondominios(),
+                    getDomicilios()
+                ]);
+                
+                setPasses(passData);
+                if (userCondoId) {
+                    setCondominios(condoData.filter(c => c.id === userCondoId));
+                    setAddresses(addressData.filter(a => a.condominioId === userCondoId));
+                } else {
+                    setCondominios(condoData);
+                    setAddresses(addressData);
+                }
+            };
+            fetchData();
         }
     }, []);
 
@@ -89,7 +95,7 @@ export default function PasesInvitadoAdminPage() {
     
     const handlePassCreated = () => {
         const userCondoId = user?.role === 'Adm. Condo' ? user.condominioId : undefined;
-        setPasses(getGuestPasses(userCondoId));
+        getGuestPasses(userCondoId).then(setPasses);
         setIsFormOpen(false);
         toast({ title: "Pase creado", description: "El pase de invitado ha sido generado exitosamente." });
     };

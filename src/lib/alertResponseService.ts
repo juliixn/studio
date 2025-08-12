@@ -1,21 +1,25 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { AlertResponse } from './definitions';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getAlertResponses(condominioId?: string): Promise<AlertResponse[]> {
     try {
-        const whereClause: any = {};
+        let query: FirebaseFirestore.Query = adminDb.collection('alertResponses');
         if (condominioId) {
-            whereClause.condominioId = condominioId;
+            query = query.where('condominioId', '==', condominioId);
         }
 
-        const responses = await prisma.alertResponse.findMany({
-            where: whereClause,
-            orderBy: {
-                createdAt: 'desc',
-            },
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const responses = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+            } as AlertResponse
         });
         return JSON.parse(JSON.stringify(responses));
     } catch (error) {
@@ -28,10 +32,18 @@ type AddAlertResponsePayload = Omit<AlertResponse, 'id' | 'createdAt'>;
 
 export async function addAlertResponse(payload: AddAlertResponsePayload): Promise<AlertResponse | null> {
     try {
-        const newResponse = await prisma.alertResponse.create({
-            data: payload
-        });
-        return JSON.parse(JSON.stringify(newResponse));
+        const newResponseRef = adminDb.collection('alertResponses').doc();
+        const newResponseData = {
+            id: newResponseRef.id,
+            ...payload,
+            createdAt: Timestamp.now(),
+        };
+
+        await newResponseRef.set(newResponseData);
+        return JSON.parse(JSON.stringify({
+            ...newResponseData,
+            createdAt: newResponseData.createdAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error("Error adding alert response:", error);
         return null;

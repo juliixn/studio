@@ -12,13 +12,17 @@ export async function getUsers(): Promise<User[]> {
         const snapshot = await adminDb.collection('users').get();
         const users = snapshot.docs.map(doc => {
             const data = doc.data();
+            // This part is to handle legacy data that might have comma-separated strings
+            const condominioIds = Array.isArray(data.condominioIds) ? data.condominioIds : (typeof data.condominioIds === 'string' ? data.condominioIds.split(',').filter(Boolean) : []);
+            const addressIds = Array.isArray(data.addressIds) ? data.addressIds : (typeof data.addressIds === 'string' ? data.addressIds.split(',').filter(Boolean) : []);
+            const inhabitantNames = Array.isArray(data.inhabitantNames) ? data.inhabitantNames : (typeof data.inhabitantNames === 'string' ? data.inhabitantNames.split(',').filter(Boolean) : []);
+
             return {
                 id: doc.id,
                 ...data,
-                // Handle comma-separated strings for backward compatibility
-                condominioIds: Array.isArray(data.condominioIds) ? data.condominioIds : (typeof data.condominioIds === 'string' ? data.condominioIds.split(',').filter(Boolean) : []),
-                addressIds: Array.isArray(data.addressIds) ? data.addressIds : (typeof data.addressIds === 'string' ? data.addressIds.split(',').filter(Boolean) : []),
-                inhabitantNames: Array.isArray(data.inhabitantNames) ? data.inhabitantNames : (typeof data.inhabitantNames === 'string' ? data.inhabitantNames.split(',').filter(Boolean) : []),
+                condominioIds,
+                addressIds,
+                inhabitantNames,
             } as User;
         });
         return JSON.parse(JSON.stringify(users));
@@ -35,12 +39,16 @@ export async function getUserById(userId: string): Promise<User | null> {
         const data = doc.data();
         if (!data) return null;
         
+        const condominioIds = Array.isArray(data.condominioIds) ? data.condominioIds : (typeof data.condominioIds === 'string' ? data.condominioIds.split(',').filter(Boolean) : []);
+        const addressIds = Array.isArray(data.addressIds) ? data.addressIds : (typeof data.addressIds === 'string' ? data.addressIds.split(',').filter(Boolean) : []);
+        const inhabitantNames = Array.isArray(data.inhabitantNames) ? data.inhabitantNames : (typeof data.inhabitantNames === 'string' ? data.inhabitantNames.split(',').filter(Boolean) : []);
+        
         const user = { 
             id: doc.id, 
             ...data,
-            condominioIds: Array.isArray(data.condominioIds) ? data.condominioIds : (typeof data.condominioIds === 'string' ? data.condominioIds.split(',').filter(Boolean) : []),
-            addressIds: Array.isArray(data.addressIds) ? data.addressIds : (typeof data.addressIds === 'string' ? data.addressIds.split(',').filter(Boolean) : []),
-            inhabitantNames: Array.isArray(data.inhabitantNames) ? data.inhabitantNames : (typeof data.inhabitantNames === 'string' ? data.inhabitantNames.split(',').filter(Boolean) : []),
+            condominioIds,
+            addressIds,
+            inhabitantNames
         } as User;
         return JSON.parse(JSON.stringify(user));
     } catch (error) {
@@ -86,12 +94,17 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
         const updatedDoc = await adminDb.collection('users').doc(userId).get();
         const data = updatedDoc.data();
         if (!data) return null;
+
+        const condominioIds = Array.isArray(data.condominioIds) ? data.condominioIds : (typeof data.condominioIds === 'string' ? data.condominioIds.split(',').filter(Boolean) : []);
+        const addressIds = Array.isArray(data.addressIds) ? data.addressIds : (typeof data.addressIds === 'string' ? data.addressIds.split(',').filter(Boolean) : []);
+        const inhabitantNames = Array.isArray(data.inhabitantNames) ? data.inhabitantNames : (typeof data.inhabitantNames === 'string' ? data.inhabitantNames.split(',').filter(Boolean) : []);
+        
         return JSON.parse(JSON.stringify({ 
             id: updatedDoc.id,
             ...data,
-            condominioIds: Array.isArray(data.condominioIds) ? data.condominioIds : (typeof data.condominioIds === 'string' ? data.condominioIds.split(',').filter(Boolean) : []),
-            addressIds: Array.isArray(data.addressIds) ? data.addressIds : (typeof data.addressIds === 'string' ? data.addressIds.split(',').filter(Boolean) : []),
-            inhabitantNames: Array.isArray(data.inhabitantNames) ? data.inhabitantNames : (typeof data.inhabitantNames === 'string' ? data.inhabitantNames.split(',').filter(Boolean) : []),
+            condominioIds,
+            addressIds,
+            inhabitantNames
         }));
     } catch (error) {
         console.error(`Error updating user ${userId}:`, error);

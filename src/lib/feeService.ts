@@ -1,37 +1,31 @@
 
 "use server";
 
-import prisma from './prisma';
-import type { ResidentAccount, Transaction } from './definitions';
+import { adminDb } from './firebase';
+import type { ResidentAccount, Transaction, User } from './definitions';
 
 export async function getResidentAccounts(residentId?: string): Promise<any> {
     try {
-        let profileWhere: any = {
-            OR: [
-                { role: 'Propietario' },
-                { role: 'Renta' },
-            ]
-        };
+        const usersSnapshot = await adminDb.collection('users').get();
+        const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+
+        let profiles = allUsers.filter(u => u.role === 'Propietario' || u.role === 'Renta');
+
         if (residentId) {
-            profileWhere.id = residentId;
+            profiles = profiles.filter(p => p.id === residentId);
         }
         
-        const profiles = await prisma.user.findMany({
-            where: profileWhere,
-        });
-
         const residentIds = profiles.map(p => p.id);
 
-        const allAddresses = await prisma.address.findMany();
-        const allCondos = await prisma.condominio.findMany();
+        const addressesSnapshot = await adminDb.collection('addresses').get();
+        const allAddresses = addressesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const transactions = await prisma.transaction.findMany({
-            where: {
-                residentId: { in: residentIds },
-            },
-            orderBy: { date: 'desc' },
-        });
+        const condosSnapshot = await adminDb.collection('condominios').get();
+        const allCondos = condosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        const transactionsSnapshot = await adminDb.collection('transactions').where('residentId', 'in', residentIds.length > 0 ? residentIds : ['dummyId']).get();
+        const transactions = transactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
         const accounts = profiles.map(profile => {
             const userTransactions = transactions.filter(t => t.residentId === profile.id);
             const balance = userTransactions.reduce((acc, tx) => {
@@ -62,15 +56,16 @@ export async function getResidentAccounts(residentId?: string): Promise<any> {
 
 export async function addCharge(residentId: string, concept: string, amount: number, date?: string): Promise<Transaction | null> {
     try {
-        const newCharge = await prisma.transaction.create({
-            data: {
-                residentId,
-                concept,
-                amount,
-                type: 'charge',
-                date: date || new Date().toISOString(),
-            }
-        });
+        const newDocRef = adminDb.collection('transactions').doc();
+        const newCharge = {
+            id: newDocRef.id,
+            residentId,
+            concept,
+            amount,
+            type: 'charge',
+            date: date || new Date().toISOString(),
+        };
+        await newDocRef.set(newCharge);
         return JSON.parse(JSON.stringify(newCharge));
     } catch (error) {
         console.error("Error adding charge:", error);
@@ -80,15 +75,16 @@ export async function addCharge(residentId: string, concept: string, amount: num
 
 export async function addPayment(residentId: string, concept: string, amount: number): Promise<Transaction | null> {
     try {
-        const newPayment = await prisma.transaction.create({
-            data: {
-                residentId,
-                concept,
-                amount,
-                type: 'payment',
-                date: new Date().toISOString(),
-            }
-        });
+        const newDocRef = adminDb.collection('transactions').doc();
+        const newPayment = {
+            id: newDocRef.id,
+            residentId,
+            concept,
+            amount,
+            type: 'payment',
+            date: new Date().toISOString(),
+        };
+        await newDocRef.set(newPayment);
         return JSON.parse(JSON.stringify(newPayment));
     } catch (error) {
         console.error("Error adding payment:", error);

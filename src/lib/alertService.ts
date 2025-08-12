@@ -1,17 +1,22 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { PanicAlert } from './definitions';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getActiveAlerts(): Promise<PanicAlert[]> {
     try {
-        // En un sistema real, esto podría filtrar por alertas no resueltas.
-        // Por ahora, traemos todas las alertas.
-        const alerts = await prisma.panicAlert.findMany({
-             orderBy: {
-                createdAt: 'desc',
-            },
+        // In a real system, this would filter by unresolved alerts.
+        // For now, we fetch all alerts.
+        const snapshot = await adminDb.collection('panicAlerts').orderBy('createdAt', 'desc').get();
+        const alerts = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+            } as PanicAlert
         });
         return JSON.parse(JSON.stringify(alerts));
     } catch (error) {
@@ -22,11 +27,14 @@ export async function getActiveAlerts(): Promise<PanicAlert[]> {
 
 export async function getActiveAlertsForCondo(condominioId: string): Promise<PanicAlert[]> {
      try {
-        const alerts = await prisma.panicAlert.findMany({
-            where: { condominioId },
-            orderBy: {
-                createdAt: 'desc',
-            },
+        const snapshot = await adminDb.collection('panicAlerts').where('condominioId', '==', condominioId).orderBy('createdAt', 'desc').get();
+         const alerts = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+            } as PanicAlert
         });
         return JSON.parse(JSON.stringify(alerts));
     } catch (error) {
@@ -38,22 +46,34 @@ export async function getActiveAlertsForCondo(condominioId: string): Promise<Pan
 export async function createPanicAlert(payload: Omit<PanicAlert, 'id' | 'createdAt'>): Promise<PanicAlert | null> {
     try {
         // Prevent creating duplicate alerts for the same condo if one is active
-        const existingAlert = await prisma.panicAlert.findFirst({
-            where: { 
-                condominioId: payload.condominioId,
-                // Podrías añadir un campo 'clearedAt' para verificar si está activa
-            },
-        });
+        const snapshot = await adminDb.collection('panicAlerts')
+            .where('condominioId', '==', payload.condominioId)
+            .limit(1)
+            .get();
 
-        if (existingAlert) {
+        if (!snapshot.empty) {
             console.warn(`Alert already active for condo ${payload.condominioId}`);
-            return JSON.parse(JSON.stringify(existingAlert));
+            const doc = snapshot.docs[0];
+            const data = doc.data();
+            return JSON.parse(JSON.stringify({
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt.toDate().toISOString(),
+            }));
         }
+        
+        const newAlertRef = adminDb.collection('panicAlerts').doc();
+        const newAlertData = {
+            id: newAlertRef.id,
+            ...payload,
+            createdAt: Timestamp.now(),
+        }
+        await newAlertRef.set(newAlertData);
 
-        const newAlert = await prisma.panicAlert.create({
-            data: payload,
-        });
-        return JSON.parse(JSON.stringify(newAlert));
+        return JSON.parse(JSON.stringify({
+            ...newAlertData,
+            createdAt: newAlertData.createdAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error("Error creating panic alert:", error);
         return null;
@@ -62,13 +82,10 @@ export async function createPanicAlert(payload: Omit<PanicAlert, 'id' | 'created
 
 export async function clearPanicAlert(alertId: string): Promise<boolean> {
     try {
-        await prisma.panicAlert.delete({
-            where: { id: alertId },
-        });
+        await adminDb.collection('panicAlerts').doc(alertId).delete();
         return true;
     } catch (error) {
         console.error(`Error clearing panic alert ${alertId}:`, error);
         return false;
     }
 }
-

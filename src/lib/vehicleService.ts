@@ -38,7 +38,9 @@ export async function updateUserVehicle(userId: string, vehicleId: string, updat
         const vehicleRef = adminDb.collection('users').doc(userId).collection('vehicles').doc(vehicleId);
         await vehicleRef.update(updates);
         const updatedDoc = await vehicleRef.get();
-        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
+        const data = updatedDoc.data();
+        if (!data) return null;
+        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...data }));
     } catch (error) {
         console.error(`Error updating vehicle ${vehicleId}:`, error);
         return null;

@@ -4,6 +4,8 @@
 import { useState, useEffect } from "react";
 import { getGuestPasses, deleteGuestPass } from "@/lib/guestPassService";
 import { getVisitorNotifications, updateVisitorNotification } from "@/lib/visitorNotificationService";
+import { getCondominios } from "@/lib/condominioService";
+import { getDomicilios } from "@/lib/domicilioService";
 
 import type { GuestPass, User, Address, Condominio, VisitorNotification } from "@/lib/definitions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +14,6 @@ import CreateGuestPassForm from "@/components/create-guest-pass-form";
 import VisitorNotificationForm from "@/components/visitor-notification-form";
 import QrCodeDisplay from "@/components/qr-code-display";
 import { useToast } from "@/hooks/use-toast";
-import { allAddresses, mockCondominios } from "@/lib/data";
 import Link from "next/link";
 import { ArrowLeft, Car, User as UserIcon, QrCode, Bell, Trash2, CalendarOff, History } from "lucide-react";
 import { format } from "date-fns/format";
@@ -27,17 +28,12 @@ export default function PasesInvitadoPage() {
     const [user, setUser] = useState<User | null>(null);
     const [allPasses, setAllPasses] = useState<GuestPass[]>([]);
     const [notifications, setNotifications] = useState<VisitorNotification[]>([]);
-    const [condominios] = useState<Condominio[]>(mockCondominios);
-    const [addresses] = useState<Address[]>(allAddresses);
+    const [condominios, setCondominios] = useState<Condominio[]>([]);
+    const [addresses, setAddresses] = useState<Address[]>([]);
     
     const refreshData = (userId: string) => {
-        // Refresh QR Passes
-        const userPasses = getGuestPasses(undefined, userId);
-        setAllPasses(userPasses);
-        
-        // Refresh Notifications
-        const userNotifications = getVisitorNotifications(undefined, userId);
-        setNotifications(userNotifications);
+        getGuestPasses(undefined, userId).then(setAllPasses);
+        getVisitorNotifications(undefined, userId).then(setNotifications);
     };
 
     useEffect(() => {
@@ -46,6 +42,8 @@ export default function PasesInvitadoPage() {
             const storedUser = JSON.parse(storedUserStr);
             setUser(storedUser);
             refreshData(storedUser.id);
+            getCondominios().then(setCondominios);
+            getDomicilios().then(setAddresses);
         }
     }, []);
 

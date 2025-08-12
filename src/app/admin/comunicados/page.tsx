@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import type { Condominio, Comunicado } from "@/lib/definitions";
-import { mockCondominios } from "@/lib/data";
 import { Send, Mail, Loader2, History, Sparkles } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +21,7 @@ import { addComunicado, getComunicados } from "@/lib/comunicadoService";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { generateComunicadoDraft } from "@/ai/flows/generate-comunicado-draft-flow";
+import { getCondominios } from "@/lib/condominioService";
 
 const formSchema = z.object({
   target: z.string().min(1, "Debe seleccionar un destinatario."),
@@ -38,7 +38,7 @@ const formSchema = z.object({
 
 export default function ComunicadosPage() {
     const { toast } = useToast();
-    const [condominios] = useState<Condominio[]>(mockCondominios);
+    const [condominios, setCondominios] = useState<Condominio[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [history, setHistory] = useState<Comunicado[]>([]);
@@ -46,10 +46,11 @@ export default function ComunicadosPage() {
 
     useEffect(() => {
         refreshHistory();
+        getCondominios().then(setCondominios);
     }, []);
 
     const refreshHistory = () => {
-        setHistory(getComunicados());
+        getComunicados().then(setHistory);
     };
     
     const form = useForm<z.infer<typeof formSchema>>({
@@ -86,35 +87,32 @@ export default function ComunicadosPage() {
         }
     };
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
-        // Simulate network delay
-        setTimeout(() => {
-            const channels: ('Push' | 'Email')[] = [];
-            if (values.channels.push) channels.push('Push');
-            if (values.channels.email) channels.push('Email');
-            
-            const targetCondo = condominios.find(c => c.id === values.target);
-            const targetName = values.target === 'all' ? 'Todos los Residentes' : `Residentes de ${targetCondo?.name || 'N/A'}`;
+        const channels: ('Push' | 'Email')[] = [];
+        if (values.channels.push) channels.push('Push');
+        if (values.channels.email) channels.push('Email');
+        
+        const targetCondo = condominios.find(c => c.id === values.target);
+        const targetName = values.target === 'all' ? 'Todos los Residentes' : `Residentes de ${targetCondo?.name || 'N/A'}`;
 
-            addComunicado({
-                subject: values.subject,
-                message: values.message,
-                target: values.target,
-                targetName: targetName,
-                channels: channels,
-            });
+        await addComunicado({
+            subject: values.subject,
+            message: values.message,
+            target: values.target,
+            targetName: targetName,
+            channels: channels,
+        });
 
-            toast({
-                title: "Comunicado Enviado",
-                description: "El mensaje ha sido puesto en cola para su envío.",
-            });
-            form.reset();
-            form.setValue("channels", { push: true, email: false });
-            form.setValue("target", "all");
-            setIsSubmitting(false);
-            refreshHistory();
-        }, 1000);
+        toast({
+            title: "Comunicado Enviado",
+            description: "El mensaje ha sido puesto en cola para su envío.",
+        });
+        form.reset();
+        form.setValue("channels", { push: true, email: false });
+        form.setValue("target", "all");
+        setIsSubmitting(false);
+        refreshHistory();
     }
 
     return (

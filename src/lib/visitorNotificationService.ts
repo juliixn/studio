@@ -1,23 +1,30 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { VisitorNotification } from './definitions';
 import { subHours } from 'date-fns';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getVisitorNotifications(condominioId?: string, residentId?: string): Promise<VisitorNotification[]> {
     try {
-        const whereClause: any = {};
-        if (condominioId) {
-            whereClause.condominioId = condominioId;
-        }
-        if (residentId) {
-            whereClause.residentId = residentId;
-        }
+        let query: FirebaseFirestore.Query = adminDb.collection('visitorNotifications');
 
-        const notifications = await prisma.visitorNotification.findMany({
-            where: whereClause,
-            orderBy: { createdAt: 'desc' },
+        if (condominioId && !residentId) {
+             query = query.where('condominioId', '==', condominioId);
+        } else if (residentId) {
+            query = query.where('residentId', '==', residentId);
+        }
+        
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        
+        const notifications = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt.toDate().toISOString(),
+            } as VisitorNotification;
         });
 
         const now = new Date();
@@ -41,13 +48,18 @@ export async function getVisitorNotifications(condominioId?: string, residentId?
 
 export async function addVisitorNotification(payload: Omit<VisitorNotification, 'id' | 'createdAt' | 'status'>): Promise<VisitorNotification | null> {
      try {
-        const newNotification = await prisma.visitorNotification.create({
-            data: {
-                ...payload,
-                status: 'Activa',
-            },
-        });
-        return JSON.parse(JSON.stringify(newNotification));
+        const newDocRef = adminDb.collection('visitorNotifications').doc();
+        const newNotification = {
+            id: newDocRef.id,
+            ...payload,
+            status: 'Activa',
+            createdAt: Timestamp.now(),
+        };
+        await newDocRef.set(newNotification);
+        return JSON.parse(JSON.stringify({
+            ...newNotification,
+            createdAt: newNotification.createdAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error("Error adding visitor notification:", error);
         return null;
@@ -56,11 +68,16 @@ export async function addVisitorNotification(payload: Omit<VisitorNotification, 
 
 export async function updateVisitorNotification(notificationId: string, payload: Partial<Omit<VisitorNotification, 'id'>>): Promise<VisitorNotification | null> {
     try {
-        const updatedNotification = await prisma.visitorNotification.update({
-            where: { id: notificationId },
-            data: payload,
-        });
-        return JSON.parse(JSON.stringify(updatedNotification));
+        const docRef = adminDb.collection('visitorNotifications').doc(notificationId);
+        await docRef.update(payload);
+        const updatedDoc = await docRef.get();
+        const data = updatedDoc.data();
+        if (!data) return null;
+        return JSON.parse(JSON.stringify({
+            id: docRef.id,
+            ...data,
+            createdAt: data.createdAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error(`Error updating visitor notification ${notificationId}:`, error);
         return null;

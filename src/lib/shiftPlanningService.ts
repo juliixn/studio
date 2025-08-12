@@ -1,12 +1,13 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { PlannedShift } from './definitions';
 
 export async function getPlannedShifts(): Promise<PlannedShift[]> {
     try {
-        const shifts = await prisma.plannedShift.findMany();
+        const snapshot = await adminDb.collection('plannedShifts').get();
+        const shifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlannedShift));
         return JSON.parse(JSON.stringify(shifts));
     } catch (error) {
         console.error("Error fetching planned shifts:", error);
@@ -21,12 +22,8 @@ export async function addOrUpdatePlannedShift(payload: AddOrUpdatePayload): Prom
         const id = `${payload.condominioId}-${payload.date}-${payload.turno}-${payload.slot}`;
         const newShift: PlannedShift = { ...payload, id };
         
-        const upsertedShift = await prisma.plannedShift.upsert({
-            where: { id },
-            update: { guardId: newShift.guardId },
-            create: newShift,
-        });
-        return JSON.parse(JSON.stringify(upsertedShift));
+        await adminDb.collection('plannedShifts').doc(id).set(newShift, { merge: true });
+        return JSON.parse(JSON.stringify(newShift));
     } catch (error) {
         console.error("Error adding or updating planned shift:", error);
         return null;
@@ -35,9 +32,7 @@ export async function addOrUpdatePlannedShift(payload: AddOrUpdatePayload): Prom
 
 export async function removePlannedShift(shiftId: string): Promise<boolean> {
     try {
-        await prisma.plannedShift.delete({
-            where: { id: shiftId },
-        });
+        await adminDb.collection('plannedShifts').doc(shiftId).delete();
         return true;
     } catch (error) {
         console.error(`Error removing planned shift ${shiftId}:`, error);

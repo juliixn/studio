@@ -4,7 +4,7 @@
 import { adminDb } from './firebase';
 import type { Condominio } from './definitions';
 
-async function docToCondominio(doc: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>): Promise<Condominio> {
+function docToCondominio(doc: FirebaseFirestore.DocumentSnapshot<FirebaseFirestore.DocumentData>): Condominio {
     const data = doc.data();
     if (!data) {
         throw new Error("Document data is undefined.");
@@ -18,7 +18,7 @@ async function docToCondominio(doc: FirebaseFirestore.DocumentSnapshot<FirebaseF
 export async function getCondominios(): Promise<Condominio[]> {
     try {
         const snapshot = await adminDb.collection('condominios').orderBy('name').get();
-        const condominios = await Promise.all(snapshot.docs.map(docToCondominio));
+        const condominios = snapshot.docs.map(docToCondominio);
         return JSON.parse(JSON.stringify(condominios));
     } catch (error) {
         console.error("Error fetching condominios:", error);
@@ -30,7 +30,9 @@ export async function getCondominioById(id: string): Promise<Condominio | null> 
     try {
         const doc = await adminDb.collection('condominios').doc(id).get();
         if (!doc.exists) return null;
-        return JSON.parse(JSON.stringify(await docToCondominio(doc)));
+        const data = doc.data();
+        if (!data) return null;
+        return JSON.parse(JSON.stringify(docToCondominio(doc)));
     } catch (error) {
         console.error(`Error fetching condominio ${id}:`, error);
         return null;

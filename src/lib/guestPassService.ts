@@ -1,23 +1,22 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { GuestPass } from './definitions';
 import { addDays, addMonths, addYears, isAfter } from 'date-fns';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getGuestPasses(condominioId?: string, residentId?: string): Promise<GuestPass[]> {
     try {
-        const whereClause: any = {};
+        let query: FirebaseFirestore.Query = adminDb.collection('guestPasses');
         if (condominioId) {
-            whereClause.condominioId = condominioId;
+            query = query.where('condominioId', '==', condominioId);
         }
         if (residentId) {
-            whereClause.residentId = residentId;
+            query = query.where('residentId', '==', residentId);
         }
-        const passes = await prisma.guestPass.findMany({
-            where: whereClause,
-            orderBy: { createdAt: 'desc' },
-        });
+        const snapshot = await query.orderBy('createdAt', 'desc').get();
+        const passes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GuestPass));
         return JSON.parse(JSON.stringify(passes));
     } catch (error) {
         console.error("Error fetching guest passes:", error);
@@ -27,11 +26,10 @@ export async function getGuestPasses(condominioId?: string, residentId?: string)
 
 export async function getGuestPassById(passId: string): Promise<GuestPass | null> {
     try {
-        const pass = await prisma.guestPass.findUnique({
-            where: { id: passId },
-        });
+        const doc = await adminDb.collection('guestPasses').doc(passId).get();
         
-        if (!pass) return null;
+        if (!doc.exists) return null;
+        const pass = { id: doc.id, ...doc.data() } as GuestPass;
 
         if (pass.passType === 'temporal' && pass.validUntil && isAfter(new Date(), new Date(pass.validUntil))) {
             // Pass has expired
@@ -70,13 +68,19 @@ export async function addGuestPass(payload: AddPassPayload): Promise<GuestPass |
         
         const { durationValue, durationUnit, ...restOfPayload } = payload;
         
-        const newPass = await prisma.guestPass.create({
-            data: {
-                ...restOfPayload,
-                validUntil,
-            },
-        });
-        return JSON.parse(JSON.stringify(newPass));
+        const newDocRef = adminDb.collection('guestPasses').doc();
+        const newPass = {
+            id: newDocRef.id,
+            ...restOfPayload,
+            validUntil,
+            createdAt: Timestamp.now(),
+        };
+        await newDocRef.set(newPass);
+        
+        return JSON.parse(JSON.stringify({
+            ...newPass,
+            createdAt: newPass.createdAt.toDate().toISOString()
+        }));
     } catch (error) {
         console.error("Error adding guest pass:", error);
         return null;
@@ -85,9 +89,7 @@ export async function addGuestPass(payload: AddPassPayload): Promise<GuestPass |
 
 export async function deleteGuestPass(passId: string): Promise<boolean> {
     try {
-        await prisma.guestPass.delete({
-            where: { id: passId },
-        });
+        await adminDb.collection('guestPasses').doc(passId).delete();
         return true;
     } catch (error) {
         console.error(`Error deleting guest pass ${passId}:`, error);

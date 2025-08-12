@@ -57,7 +57,9 @@ export async function updateDomicilio(id: string, updates: Partial<Omit<Address,
         const docRef = adminDb.collection('addresses').doc(id);
         await docRef.update(updates);
         const updatedDoc = await docRef.get();
-        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
+        const data = updatedDoc.data();
+        if (!data) return null;
+        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...data }));
     } catch (error) {
         console.error(`Error updating domicilio ${id}:`, error);
         return null;

@@ -23,7 +23,8 @@ export async function getList(key: ListKey): Promise<string[]> {
         if (!doc.exists) {
             return [];
         }
-        return (doc.data()?.values || []) as string[];
+        const data = doc.data();
+        return (data?.values || []) as string[];
     } catch (error) {
         console.error(`Error fetching list "${key}":`, error);
         return [];

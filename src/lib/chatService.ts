@@ -1,15 +1,20 @@
 
 "use server";
 
-import prisma from './prisma';
+import { adminDb } from './firebase';
 import type { ChatMessage } from './definitions';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getChatMessages(): Promise<ChatMessage[]> {
     try {
-        const messages = await prisma.chatMessage.findMany({
-            orderBy: {
-                createdAt: 'asc',
-            },
+        const snapshot = await adminDb.collection('chatMessages').orderBy('createdAt', 'asc').get();
+        const messages = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt.toDate().toISOString(),
+            } as ChatMessage;
         });
         return JSON.parse(JSON.stringify(messages));
     } catch (error) {
@@ -20,10 +25,17 @@ export async function getChatMessages(): Promise<ChatMessage[]> {
 
 export async function sendChatMessage(message: Omit<ChatMessage, 'id' | 'createdAt'>): Promise<ChatMessage | null> {
     try {
-        const newMessage = await prisma.chatMessage.create({
-            data: message,
-        });
-        return JSON.parse(JSON.stringify(newMessage));
+        const newDocRef = adminDb.collection('chatMessages').doc();
+        const newMessageData = {
+            id: newDocRef.id,
+            ...message,
+            createdAt: Timestamp.now(),
+        };
+        await newDocRef.set(newMessageData);
+        return JSON.parse(JSON.stringify({
+            ...newMessageData,
+            createdAt: newMessageData.createdAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error("Error sending chat message:", error);
         return null;

@@ -27,7 +27,10 @@ export async function addBitacoraEntry(payload: NewEntryPayload): Promise<Bitaco
             ...payload
         };
         await newEntryRef.set(entryData);
-        return JSON.parse(JSON.stringify(entryData));
+        return JSON.parse(JSON.stringify({
+            ...entryData,
+            createdAt: entryData.createdAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error("Error adding bitacora entry:", error);
         return null;
@@ -70,7 +73,15 @@ export async function updateBitacoraEntry(entryId: string, payload: UpdateEntryP
         };
         await entryRef.update(dataToUpdate);
         const updatedDoc = await entryRef.get();
-        return JSON.parse(JSON.stringify({ id: updatedDoc.id, ...updatedDoc.data() }));
+        const data = updatedDoc.data();
+        if (!data) return null;
+        
+        return JSON.parse(JSON.stringify({
+             ...data,
+            id: updatedDoc.id,
+            createdAt: data.createdAt.toDate().toISOString(),
+            updatedAt: data.updatedAt.toDate().toISOString(),
+        }));
     } catch (error) {
         console.error("Error updating bitacora entry:", error);
         return null;
