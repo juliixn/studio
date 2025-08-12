@@ -60,8 +60,8 @@ export interface VehicularRegistration {
     licensePlate: string;
     fullName: string;
     visitorType: string;
-    providerType?: string; // New field
-    employeeType?: string; // New field
+    providerType?: string;
+    employeeType?: string;
     vehicleType: string;
     vehicleBrand: string;
     vehicleColor: string;
@@ -338,9 +338,9 @@ export interface PayrollData {
 
 export interface ArchivedPayroll {
     id: string;
-    period: string; // Stored as JSON string
-    payrollData: string; // Stored as JSON string
-    totals: string; // Stored as JSON string
+    period: { from: string; to: string };
+    payrollData: PayrollData[];
+    totals: { subtotal: number; bonuses: number; penalties: number; loanDeductions: number; total: number };
     archivedAt: string;
 }
 
@@ -429,7 +429,7 @@ export interface Comunicado {
   message: string;
   target: 'all' | string; // 'all' or a condominioId
   targetName: string;
-  channels: string[]; // Stored as comma-separated string
+  channels: ('Push' | 'Email')[];
   createdAt: string;
 }
 
@@ -482,7 +482,7 @@ export interface Survey {
     title: string;
     description: string;
     condominioId: 'all' | string;
-    options: string; // Stored as JSON string
+    options: SurveyOption[];
     createdAt: string;
     closesAt: string;
     status: 'Abierta' | 'Cerrada';

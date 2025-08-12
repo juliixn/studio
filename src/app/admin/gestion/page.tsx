@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Building, Home, Users, UserSquare, Package } from "lucide-react";
+import { ArrowRight, Building, Home, Users, UserSquare, Package, Download } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { User, RolePermission, PermissionModuleId } from "@/lib/definitions";
@@ -15,7 +15,8 @@ const allGestionSections: { href: string; icon: React.ElementType; title: string
     { href: "/admin/domicilios", icon: Home, title: "Domicilios", description: "Administra las direcciones individuales dentro de cada condominio.", id: 'condominio' }, // Uses same permission
     { href: "/admin/usuarios", icon: Users, title: "Usuarios", description: "Gestiona las cuentas de todos los usuarios: admins, guardias y residentes.", id: 'usuarios' },
     { href: "/admin/directorios", icon: UserSquare, title: "Directorio Unificado", description: "Consulta rápidamente a todos los usuarios por rol y condominio.", id: 'directorios' },
-    { href: "/admin/activos", icon: Package, title: "Activos", description: "Gestiona el inventario y mantenimiento de los activos del condominio.", id: 'activos' }
+    { href: "/admin/activos", icon: Package, title: "Activos", description: "Gestiona el inventario y mantenimiento de los activos del condominio.", id: 'activos' },
+    { href: "/admin/exportar-datos", icon: Download, title: "Exportar Datos", description: "Descarga los datos principales del sistema en formato CSV.", id: 'condominio' } // Uses same permission
 ];
 
 export default function GestionHubPage() {

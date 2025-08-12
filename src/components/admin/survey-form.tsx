@@ -39,7 +39,7 @@ export function SurveyForm({ survey, condominios, onSubmit, onCancel }: SurveyFo
       description: survey?.description || "",
       condominioId: survey?.condominioId || "all",
       closesAt: survey?.closesAt ? new Date(survey.closesAt) : new Date(),
-      options: survey?.options.map(opt => ({text: opt.text})) || [{ text: "" }, { text: "" }],
+      options: survey?.options?.map(opt => ({text: opt.text})) || [{ text: "" }, { text: "" }],
     },
   });
 
@@ -52,7 +52,7 @@ export function SurveyForm({ survey, condominios, onSubmit, onCancel }: SurveyFo
     onSubmit({
       ...values,
       closesAt: values.closesAt.toISOString(),
-      options: values.options.map(opt => ({ ...opt, votes: 0, id: `opt${Date.now()}${Math.random()}`}))
+      options: values.options.map(opt => ({ text: opt.text }))
     });
   };
 

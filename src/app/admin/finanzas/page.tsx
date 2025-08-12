@@ -14,8 +14,7 @@ const allFinanceSections: { href: string; icon: React.ElementType; title: string
     { href: "/admin/finanzas/nomina", icon: DollarSign, title: "Nómina y Cálculo", description: "Calcula, ajusta y procesa la nómina de los guardias de seguridad.", id: 'finanzas' },
     { href: "/admin/finanzas/cuotas", icon: Wallet, title: "Cuotas y Pagos", description: "Gestiona los cargos y pagos de las cuotas de mantenimiento de los residentes.", id: 'finanzas' },
     { href: "/admin/finanzas/prestamos", icon: Banknote, title: "Préstamos y Adelantos", description: "Aprueba y da seguimiento a las solicitudes de préstamos de los guardias.", id: 'finanzas' },
-    { href: "/admin/finanzas/historial-nomina", icon: FileText, title: "Historial de Nómina", description: "Consulta y revisa todas las nóminas que han sido procesadas y archivadas.", id: 'finanzas' },
-    { href: "/admin/reportes-financieros", icon: FileText, title: "Reportes Financieros", description: "Visualiza reportes consolidados de ingresos, egresos y balances.", id: 'finanzas' }
+    { href: "/admin/finanzas/historial-nomina", icon: FileText, title: "Historial de Nómina", description: "Consulta y revisa todas las nóminas que han sido procesadas y archivadas.", id: 'finanzas' }
 ];
 
 export default function FinanzasHubPage() {

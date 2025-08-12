@@ -31,11 +31,17 @@ export async function getSurveys(condominioId?: string): Promise<Survey[]> {
     }
 }
 
-export async function addSurvey(survey: Omit<Survey, 'id' | 'createdAt' | 'status'>): Promise<Survey | null> {
+export async function addSurvey(survey: Omit<Survey, 'id' | 'createdAt' | 'status' | 'options'> & { options: {text: string}[] }): Promise<Survey | null> {
     try {
+        const optionsWithVotes: SurveyOption[] = survey.options.map((opt, index) => ({
+            id: `opt-${Date.now()}-${index}`,
+            text: opt.text,
+            votes: 0,
+        }));
+
         const dataToSave = {
             ...survey,
-            options: survey.options ? JSON.stringify(survey.options) : '[]',
+            options: JSON.stringify(optionsWithVotes),
             status: 'Abierta',
         }
         const newSurvey = await prisma.survey.create({
@@ -48,12 +54,18 @@ export async function addSurvey(survey: Omit<Survey, 'id' | 'createdAt' | 'statu
     }
 }
 
-export async function updateSurvey(surveyId: string, updates: Partial<Omit<Survey, 'id'>>): Promise<Survey | null> {
+export async function updateSurvey(surveyId: string, updates: Partial<Omit<Survey, 'id' | 'options'> & { options: {text: string}[] }>): Promise<Survey | null> {
     try {
-        const dataToUpdate = {
-            ...updates,
-            options: updates.options ? JSON.stringify(updates.options) : undefined
-        };
+        const dataToUpdate: any = { ...updates };
+        if (updates.options) {
+             const optionsWithVotes: SurveyOption[] = updates.options.map((opt, index) => ({
+                id: `opt-${Date.now()}-${index}`,
+                text: opt.text,
+                votes: 0,
+            }));
+            dataToUpdate.options = JSON.stringify(optionsWithVotes);
+        }
+       
         const updatedSurvey = await prisma.survey.update({
             where: { id: surveyId },
             data: dataToUpdate,
