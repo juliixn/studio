@@ -2,6 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import * as admin from 'firebase-admin';
 
@@ -11,7 +12,7 @@ const firebaseConfig = {
   authDomain: "acceso-seguro-3cs42.firebaseapp.com",
   databaseURL: "https://acceso-seguro-3cs42-default-rtdb.firebaseio.com",
   projectId: "acceso-seguro-3cs42",
-  storageBucket: "acceso-seguro-3cs42.firebasestorage.app",
+  storageBucket: "acceso-seguro-3cs42.appspot.com",
   messagingSenderId: "712343981243",
   appId: "1:712343981243:web:5ec7bf4b0f9c4bebea2d9e"
 };
@@ -33,8 +34,9 @@ if (typeof window !== 'undefined') {
 }
 
 const db = getFirestore(app);
+const storage = getStorage(app);
 
-export { db };
+export { db, storage };
 
 
 // --- Server-side Firebase (Admin SDK) ---
